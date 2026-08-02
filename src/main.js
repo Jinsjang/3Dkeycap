@@ -4358,10 +4358,11 @@ function renderParameterCardHeader({
 function renderNameFieldCard() {
   const groupViewTransitionName = createViewTransitionName("field-group", DESIGN_NAME_FIELD.key);
   const fieldViewTransitionName = createViewTransitionName("field", DESIGN_NAME_FIELD.key);
-  const value = state.keycapParams[DESIGN_NAME_FIELD.key];
-  const isInvalidName = isDefaultOrInvalidName(value);
+  const rawValue = state.keycapParams[DESIGN_NAME_FIELD.key];
+  const isInvalidName = isDefaultOrInvalidName(rawValue);
+  const inputValue = (rawValue === "이름을 적으세요" || rawValue === DEFAULT_EXPORT_BASE_NAME || rawValue === "keycap-preview") ? "" : rawValue;
   const fieldLabel = resolveDynamicCopy(DESIGN_NAME_FIELD.label);
-  const fieldPlaceholder = resolveDynamicCopy(DESIGN_NAME_FIELD.placeholder);
+  const fieldPlaceholder = "이름을 적으세요";
   const titleId = "design-name-card-title";
 
   return `
@@ -4378,10 +4379,10 @@ function renderNameFieldCard() {
             id="design-name-input"
             type="text"
             data-field="${DESIGN_NAME_FIELD.key}"
-            value="${escapeHtml(value)}"
+            value="${escapeHtml(inputValue)}"
             aria-label="${escapeHtml(fieldLabel)}"
             ${DESIGN_NAME_FIELD.maxLength != null ? `maxlength="${DESIGN_NAME_FIELD.maxLength}"` : ""}
-            ${fieldPlaceholder ? `placeholder="${escapeHtml(fieldPlaceholder)}"` : ""}
+            placeholder="${escapeHtml(fieldPlaceholder)}"
             spellcheck="false"
             autocomplete="off"
           />
@@ -7045,6 +7046,15 @@ function handleInspectorCardKeydown(event) {
 function openKeycapExportOverlay(entryId) {
   const entry = state.project.keycaps.find((item) => item.id === entryId);
   if (!entry) {
+    return;
+  }
+
+  if (isDefaultOrInvalidName(entry.name) || isDefaultOrInvalidName(state.keycapParams.name)) {
+    const input = app.querySelector("#design-name-input");
+    if (input instanceof HTMLInputElement) {
+      input.focus();
+      input.select();
+    }
     return;
   }
 

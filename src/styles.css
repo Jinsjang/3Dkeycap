@@ -651,9 +651,9 @@ pre {
 }
 
 .segment-control {
+  display: none !important;
   --segment-gap: 6px;
   --segment-padding: 6px;
-  display: grid;
   grid-template-columns: repeat(var(--segment-count), minmax(0, 1fr));
   gap: var(--segment-gap);
   padding: var(--segment-padding);
