@@ -192,7 +192,7 @@
     "sideLegendRightIconName": "circle",
     "sideLegendRightOffsetX": 0,
     "sideLegendRightOffsetY": 0,
-    "homingBarEnabled": true,
+    "homingBarEnabled": false,
     "homingBarLength": 4,
     "homingBarWidth": 1.58,
     "homingBarHeight": 0.6,
