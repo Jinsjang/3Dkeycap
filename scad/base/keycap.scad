@@ -1703,11 +1703,15 @@ module keycap_body(quality = "export") {
 }
 
 module keycap_single_material_shape(quality = "export") {
-    union() {
-        keycap_body_shell_mount_cut(quality, include_separate_top_hat = true);
-        keycap_stem(quality);
-        keycap_homing_bar(quality);
-        keycap_rim_positive(quality);
+    difference() {
+        union() {
+            keycap_body_shell_mount_cut(quality, include_separate_top_hat = true);
+            keycap_stem(quality);
+            keycap_homing_bar(quality);
+            keycap_rim_positive(quality);
+        }
+        keycap_top_legends_visible_volume(quality);
+        keycap_side_legends_visible_volume(quality);
     }
 }
 
