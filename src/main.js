@@ -4063,7 +4063,15 @@ function syncKeycapExportOverlayScrollLock(isLocked) {
   document.body.classList.toggle("is-keycap-export-overlay-open", isLocked);
 }
 
-function renderKeycapExportOverlayOption({ format, chip, title, body, action }) {
+function isKeycapNameDefault(name) {
+  const trimmed = String(name ?? "").trim();
+  return !trimmed || trimmed === DEFAULT_EXPORT_BASE_NAME || trimmed === "keycap-preview";
+}
+
+function renderKeycapExportOverlayOption({ format, chip, title, body, action, disabled = false }) {
+  const isBusy = state.exportsStatus === "running";
+  const isDisabled = isBusy || disabled;
+
   return `
     <section class="export-option-action keycap-export-option" aria-labelledby="keycap-export-${format}-title">
       <div class="export-action-card__header">
@@ -4078,10 +4086,10 @@ function renderKeycapExportOverlayOption({ format, chip, title, body, action }) 
         class="export-save-button"
         type="button"
         data-keycap-export-format="${escapeHtml(format)}"
-        ${state.exportsStatus === "running" ? "disabled" : ""}
+        ${isDisabled ? "disabled" : ""}
       >
         ${EXPORT_ICON_MARKUP.download}
-        <span>${state.exportsStatus === "running" ? t("actions.saving") : escapeHtml(action)}</span>
+        <span>${isBusy ? t("actions.saving") : escapeHtml(action)}</span>
       </button>
     </section>
   `;
@@ -4107,6 +4115,11 @@ function renderKeycapExportOverlay() {
     overlayRoot.replaceChildren();
     return;
   }
+
+  const isDefaultName = isKeycapNameDefault(entry.name);
+  const statusMessage = isDefaultName
+    ? `⚠️ 이름을 초기값("${DEFAULT_EXPORT_BASE_NAME}")에서 변경해야 내보낼 수 있습니다.`
+    : state.exportsSummary;
 
   overlayRoot.innerHTML = `
     <div class="keycap-export-overlay" data-keycap-export-overlay role="presentation">
@@ -4136,32 +4149,14 @@ function renderKeycapExportOverlay() {
             format: "stl",
             chip: t("exportPanel.stlChip"),
             title: t("exportPanel.stlTitle"),
-            body: t("exportPanel.stlBody"),
+            body: isDefaultName
+              ? `이름을 초기값("${DEFAULT_EXPORT_BASE_NAME}")에서 다른 이름으로 수정해야 STL 저장이 가능합니다.`
+              : t("exportPanel.stlBody"),
             action: t("exportPanel.saveStl"),
-          })}
-          ${renderKeycapExportOverlayOption({
-            format: "3mf",
-            chip: t("exportPanel.threeMfChip"),
-            title: t("exportPanel.threeMfTitle"),
-            body: t("exportPanel.threeMfBody"),
-            action: t("exportPanel.saveThreeMf"),
-          })}
-          ${renderKeycapExportOverlayOption({
-            format: "step",
-            chip: t("exportPanel.stepChip"),
-            title: t("exportPanel.stepTitle"),
-            body: t("exportPanel.stepBody"),
-            action: t("exportPanel.saveStep"),
-          })}
-          ${renderKeycapExportOverlayOption({
-            format: "editor-data",
-            chip: t("exportPanel.jsonChip"),
-            title: t("exportPanel.jsonTitle"),
-            body: t("exportPanel.jsonBody"),
-            action: t("exportPanel.saveJson"),
+            disabled: isDefaultName,
           })}
         </div>
-        <p class="keycap-export-dialog__status" aria-live="polite">${escapeHtml(state.exportsSummary)}</p>
+        <p class="keycap-export-dialog__status" aria-live="polite" style="${isDefaultName ? "color: #c94a4a; font-weight: 700;" : ""}">${escapeHtml(statusMessage)}</p>
       </section>
     </div>
   `;
@@ -10530,6 +10525,15 @@ async function executeExport(format, options = {}) {
     editorDataPayload = null,
     closeOverlayOnSuccess = false,
   } = options;
+  if (isKeycapNameDefault(params.name)) {
+    setExportStatus(
+      "error",
+      `이름을 초기값("${DEFAULT_EXPORT_BASE_NAME}")에서 변경해야 내보낼 수 있습니다.`,
+    );
+    render();
+    return;
+  }
+
   state.exportsStatus = "running";
   state.exportsSummary = t("importExport.preparing");
   render();
