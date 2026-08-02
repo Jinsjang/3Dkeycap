@@ -12,7 +12,7 @@
     "topCornerRadius": 1.5
   },
   "defaults": {
-    "name": "keycap-preview",
+    "name": "이름을 적으세요",
     "shapeProfile": "custom-shell",
     "keyWidth": 18,
     "keyDepth": 18,

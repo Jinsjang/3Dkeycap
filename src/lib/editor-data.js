@@ -27,7 +27,7 @@ import {
 } from "./keycap-icons.js";
 import { resolveJStemLp01PreviewColor } from "./j-stem-lp01-reference.js";
 
-export const DEFAULT_EXPORT_BASE_NAME = "keycap-preview";
+export const DEFAULT_EXPORT_BASE_NAME = "이름을 적으세요";
 export const EDITOR_DATA_KIND = "keycap-maker/editor-params";
 export const LEGACY_EDITOR_DATA_KINDS = new Set([EDITOR_DATA_KIND.replace("keycap-maker", "keycap" + "s-maker")]);
 export const EDITOR_DATA_SCHEMA_VERSION = 5;
