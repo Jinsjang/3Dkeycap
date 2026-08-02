@@ -1,0 +1,2237 @@
+use <keycap_shell.scad>
+
+function jis_enter_safe_notch_width(width, notch_width) =
+    min(max(notch_width, 0), max(width - 0.2, 0));
+function jis_enter_safe_notch_depth(depth, notch_depth) =
+    min(max(notch_depth, 0), max(depth - 0.2, 0));
+function jis_enter_plan_left(width, notch_width) =
+    -width / 2 - jis_enter_safe_notch_width(width, notch_width) / 2;
+function jis_enter_plan_right(width, notch_width) =
+    width / 2 - jis_enter_safe_notch_width(width, notch_width) / 2;
+function jis_enter_coord_width(left, right) = max(right - left, 0.2);
+function jis_enter_coord_depth(front, back) = max(back - front, 0.2);
+function jis_enter_coord_notch_width(left, right, notch_width) =
+    jis_enter_safe_notch_width(jis_enter_coord_width(left, right), notch_width);
+function jis_enter_coord_notch_depth(front, back, notch_depth) =
+    jis_enter_safe_notch_depth(jis_enter_coord_depth(front, back), notch_depth);
+function jis_enter_has_notch(left, right, front, back, notch_width, notch_depth) =
+    jis_enter_coord_notch_width(left, right, notch_width) > 0.001
+    && jis_enter_coord_notch_depth(front, back, notch_depth) > 0.001;
+function jis_enter_notch_x(left, right, notch_width) =
+    left + jis_enter_coord_notch_width(left, right, notch_width);
+function jis_enter_notch_y(front, back, notch_depth) =
+    front + jis_enter_coord_notch_depth(front, back, notch_depth);
+function jis_enter_plan_corner_radius(left, right, front, back, notch_width, notch_depth, radius) =
+    let(
+        width = jis_enter_coord_width(left, right),
+        depth = jis_enter_coord_depth(front, back),
+        safe_notch_width = jis_enter_coord_notch_width(left, right, notch_width),
+        safe_notch_depth = jis_enter_coord_notch_depth(front, back, notch_depth),
+        lower_width = max(width - safe_notch_width, 0.2),
+        upper_depth = max(depth - safe_notch_depth, 0.2),
+        notch_width_limit = safe_notch_width > 0.001 ? safe_notch_width : width,
+        notch_depth_limit = safe_notch_depth > 0.001 ? safe_notch_depth : depth,
+        radius_limit = min(width, depth, lower_width, upper_depth, notch_width_limit, notch_depth_limit) / 2
+    )
+    min(max(radius, 0), max(radius_limit, 0));
+function jis_enter_plan_inset_limit(left, right, front, back, notch_width, notch_depth) =
+    let(
+        width = jis_enter_coord_width(left, right),
+        depth = jis_enter_coord_depth(front, back),
+        safe_notch_width = jis_enter_coord_notch_width(left, right, notch_width),
+        safe_notch_depth = jis_enter_coord_notch_depth(front, back, notch_depth),
+        lower_width = width - safe_notch_width,
+        upper_depth = depth - safe_notch_depth
+    )
+    max(min(
+        (width - 0.2) / 2,
+        (depth - 0.2) / 2,
+        (lower_width - 0.2) / 2,
+        (upper_depth - 0.2) / 2
+    ), 0);
+function jis_enter_plan_safe_inset(left, right, front, back, notch_width, notch_depth, inset) =
+    min(max(inset, 0), jis_enter_plan_inset_limit(left, right, front, back, notch_width, notch_depth));
+function jis_enter_plan_points(left, right, front, back, notch_width, notch_depth) =
+    let(
+        notch_x = jis_enter_notch_x(left, right, notch_width),
+        notch_y = jis_enter_notch_y(front, back, notch_depth)
+    )
+    jis_enter_has_notch(left, right, front, back, notch_width, notch_depth)
+        ? [
+            [left, notch_y],
+            [left, back],
+            [right, back],
+            [right, front],
+            [notch_x, front],
+            [notch_x, notch_y],
+        ]
+        : [
+            [left, front],
+            [right, front],
+            [right, back],
+            [left, back]
+        ];
+
+module jis_enter_plan_polygon(left, right, front, back, notch_width, notch_depth) {
+    polygon(points = jis_enter_plan_points(left, right, front, back, notch_width, notch_depth));
+}
+
+module keycap_jis_enter_plan_profile(
+    left,
+    right,
+    front,
+    back,
+    notch_width,
+    notch_depth,
+    radius,
+    quality = "export"
+) {
+    safe_radius = jis_enter_plan_corner_radius(left, right, front, back, notch_width, notch_depth, radius);
+    corner_steps = keycap_curve_steps(
+        safe_radius,
+        quality,
+        minimum_steps = 18,
+        preview_max_steps = 48,
+        export_max_steps = 96
+    );
+
+    if (safe_radius <= 0.001) {
+        jis_enter_plan_polygon(left, right, front, back, notch_width, notch_depth);
+    } else {
+        offset(r = safe_radius, $fn = corner_steps)
+            offset(delta = -safe_radius)
+                jis_enter_plan_polygon(left, right, front, back, notch_width, notch_depth);
+    }
+}
+
+module keycap_jis_enter_face(
+    left,
+    right,
+    front,
+    back,
+    notch_width,
+    notch_depth,
+    radius,
+    quality = "export"
+) {
+    linear_extrude(height = 0.01, center = true)
+        keycap_jis_enter_plan_profile(
+            left = left,
+            right = right,
+            front = front,
+            back = back,
+            notch_width = notch_width,
+            notch_depth = notch_depth,
+            radius = radius,
+            quality = quality
+        );
+}
+
+module keycap_jis_enter_top_face(
+    left,
+    right,
+    front,
+    back,
+    notch_width,
+    notch_depth,
+    radius,
+    top_center_height,
+    pitch_deg = 0,
+    roll_deg = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0
+) {
+    keycap_top_plane_transform(top_center_height, pitch_deg, roll_deg, top_offset_x, top_offset_y)
+        keycap_jis_enter_face(
+            left = left,
+            right = right,
+            front = front,
+            back = back,
+            notch_width = notch_width,
+            notch_depth = notch_depth,
+            radius = radius,
+            quality = quality
+        );
+}
+
+module keycap_jis_enter_top_prism(
+    left,
+    right,
+    front,
+    back,
+    notch_width,
+    notch_depth,
+    radius,
+    top_center_height,
+    pitch_deg = 0,
+    roll_deg = 0,
+    height = 1,
+    base_z = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0
+) {
+    keycap_top_plane_transform(top_center_height, pitch_deg, roll_deg, top_offset_x, top_offset_y)
+        translate([0, 0, base_z])
+            linear_extrude(height = max(height, 0.01))
+                keycap_jis_enter_plan_profile(
+                    left = left,
+                    right = right,
+                    front = front,
+                    back = back,
+                    notch_width = notch_width,
+                    notch_depth = notch_depth,
+                    radius = radius,
+                    quality = quality
+            );
+}
+
+// Preserve the JIS notch while extending each side region above the top plane.
+module keycap_jis_enter_top_tapered_prism(
+    left,
+    right,
+    front,
+    back,
+    notch_width,
+    notch_depth,
+    radius,
+    top_center_height,
+    pitch_deg = 0,
+    roll_deg = 0,
+    height = 1,
+    base_z = 0,
+    left_slope = 0,
+    right_slope = 0,
+    front_slope = 0,
+    back_slope = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0,
+    corner_radii = undef
+) {
+    safe_notch_width = jis_enter_coord_notch_width(left, right, notch_width);
+    safe_notch_depth = jis_enter_coord_notch_depth(front, back, notch_depth);
+    notch_x = jis_enter_notch_x(left, right, safe_notch_width);
+    notch_y = jis_enter_notch_y(front, back, safe_notch_depth);
+    upper_corner_radii = is_undef(corner_radii)
+        ? undef
+        : [corner_radii[0], corner_radii[1], 0, corner_radii[3]];
+    lower_corner_radii = is_undef(corner_radii)
+        ? undef
+        : [0, 0, corner_radii[2], corner_radii[3]];
+
+    if (jis_enter_has_notch(left, right, front, back, safe_notch_width, safe_notch_depth)) {
+        union() {
+            keycap_top_tapered_prism(
+                left = left,
+                right = right,
+                front = notch_y,
+                back = back,
+                radius = radius,
+                top_center_height = top_center_height,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                height = height,
+                base_z = base_z,
+                left_slope = left_slope,
+                right_slope = right_slope,
+                front_slope = front_slope,
+                back_slope = back_slope,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y,
+                corner_radii = upper_corner_radii
+            );
+
+            keycap_top_tapered_prism(
+                left = notch_x,
+                right = right,
+                front = front,
+                back = back,
+                radius = radius,
+                top_center_height = top_center_height,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                height = height,
+                base_z = base_z,
+                left_slope = left_slope,
+                right_slope = right_slope,
+                front_slope = front_slope,
+                back_slope = back_slope,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y,
+                corner_radii = lower_corner_radii
+            );
+        }
+    } else {
+        keycap_top_tapered_prism(
+            left = left,
+            right = right,
+            front = front,
+            back = back,
+            radius = radius,
+            top_center_height = top_center_height,
+            pitch_deg = pitch_deg,
+            roll_deg = roll_deg,
+            height = height,
+            base_z = base_z,
+            left_slope = left_slope,
+            right_slope = right_slope,
+            front_slope = front_slope,
+            back_slope = back_slope,
+            quality = quality,
+            top_offset_x = top_offset_x,
+            top_offset_y = top_offset_y,
+            corner_radii = corner_radii
+        );
+    }
+}
+
+module keycap_jis_enter_selective_rounded_rect(
+    left,
+    right,
+    front,
+    back,
+    radius,
+    round_front_left = true,
+    round_front_right = true,
+    round_back_right = true,
+    round_back_left = true,
+    quality = "export",
+    corner_radii = undef
+) {
+    width = max(right - left, 0.2);
+    depth = max(back - front, 0.2);
+    safe_radius = min(max(radius, 0), width / 2, depth / 2);
+    resolved_corner_radii = keycap_resolved_corner_radii(safe_radius, corner_radii);
+    effective_corner_radii = [
+        round_back_left ? resolved_corner_radii[0] : 0,
+        round_back_right ? resolved_corner_radii[1] : 0,
+        round_front_right ? resolved_corner_radii[2] : 0,
+        round_front_left ? resolved_corner_radii[3] : 0
+    ];
+
+    rounded_rect_coords_with_corner_radii(left, right, front, back, effective_corner_radii, quality);
+}
+
+module keycap_jis_enter_top_hat_region_profile(
+    left,
+    right,
+    front,
+    back,
+    notch_width,
+    notch_depth,
+    inset,
+    radius,
+    region = 0,
+    quality = "export",
+    corner_radii = undef
+) {
+    safe_inset = jis_enter_plan_safe_inset(left, right, front, back, notch_width, notch_depth, inset);
+    section_left = left + safe_inset;
+    section_right = right - safe_inset;
+    section_front = front + safe_inset;
+    section_back = back - safe_inset;
+    has_notch = jis_enter_has_notch(left, right, front, back, notch_width, notch_depth);
+    section_notch_x = min(max(jis_enter_notch_x(left, right, notch_width) + safe_inset, section_left), section_right);
+    section_notch_y = min(max(jis_enter_notch_y(front, back, notch_depth) + safe_inset, section_front), section_back);
+    region_corner_radii = is_undef(corner_radii)
+        ? undef
+        : (!has_notch
+            ? corner_radii
+            : (region == 0
+                ? [corner_radii[0], corner_radii[1], 0, corner_radii[3]]
+                : [0, 0, corner_radii[2], corner_radii[3]]));
+
+    if (!has_notch) {
+        keycap_jis_enter_selective_rounded_rect(
+            left = section_left,
+            right = section_right,
+            front = section_front,
+            back = section_back,
+            radius = radius,
+            corner_radii = region_corner_radii,
+            quality = quality
+        );
+    } else if (region == 0) {
+        keycap_jis_enter_selective_rounded_rect(
+            left = section_left,
+            right = section_right,
+            front = section_notch_y,
+            back = section_back,
+            radius = radius,
+            round_front_left = true,
+            round_front_right = false,
+            round_back_right = true,
+            round_back_left = true,
+            corner_radii = region_corner_radii,
+            quality = quality
+        );
+    } else {
+        keycap_jis_enter_selective_rounded_rect(
+            left = section_notch_x,
+            right = section_right,
+            front = section_front,
+            back = section_notch_y,
+            radius = radius,
+            round_front_left = true,
+            round_front_right = true,
+            round_back_right = false,
+            round_back_left = false,
+            corner_radii = region_corner_radii,
+            quality = quality
+        );
+    }
+}
+
+module keycap_jis_enter_top_hat_section(
+    left,
+    right,
+    front,
+    back,
+    notch_width,
+    notch_depth,
+    inset,
+    radius,
+    z,
+    region = 0,
+    quality = "export",
+    corner_radii = undef
+) {
+    translate([0, 0, z])
+        linear_extrude(height = 0.01, center = true)
+            keycap_jis_enter_top_hat_region_profile(
+                left = left,
+                right = right,
+                front = front,
+                back = back,
+                notch_width = notch_width,
+                notch_depth = notch_depth,
+                inset = inset,
+                radius = radius,
+                region = region,
+                quality = quality,
+                corner_radii = corner_radii
+            );
+}
+
+module keycap_jis_enter_top_hat_cap_shape(
+    left,
+    right,
+    front,
+    back,
+    notch_width,
+    notch_depth,
+    base_inset,
+    safe_top_inset,
+    base_radius,
+    safe_top_radius,
+    base_z,
+    top_z,
+    region_count,
+    shoulder_curve_amount,
+    shoulder_steps,
+    quality = "export",
+    base_corner_radii = undef,
+    safe_top_corner_radii = undef
+) {
+    if (abs(shoulder_curve_amount) <= 0.001) {
+        for (region = [0 : region_count - 1]) {
+            hull() {
+                keycap_jis_enter_top_hat_section(
+                    left = left,
+                    right = right,
+                    front = front,
+                    back = back,
+                    notch_width = notch_width,
+                    notch_depth = notch_depth,
+                    inset = base_inset,
+                    radius = base_radius,
+                    z = base_z,
+                    region = region,
+                    quality = quality,
+                    corner_radii = base_corner_radii
+                );
+                keycap_jis_enter_top_hat_section(
+                    left = left,
+                    right = right,
+                    front = front,
+                    back = back,
+                    notch_width = notch_width,
+                    notch_depth = notch_depth,
+                    inset = safe_top_inset,
+                    radius = safe_top_radius,
+                    z = top_z,
+                    region = region,
+                    quality = quality,
+                    corner_radii = safe_top_corner_radii
+                );
+            }
+        }
+    } else {
+        for (step = [0 : shoulder_steps - 1]) {
+            for (region = [0 : region_count - 1]) {
+                hull() {
+                    for (j = [step : step + 1]) {
+                        t = j / shoulder_steps;
+                        z_fraction = keycap_top_hat_curve_fraction(t, shoulder_curve_amount);
+                        keycap_jis_enter_top_hat_section(
+                            left = left,
+                            right = right,
+                            front = front,
+                            back = back,
+                            notch_width = notch_width,
+                            notch_depth = notch_depth,
+                            inset = base_inset + (safe_top_inset - base_inset) * t,
+                            radius = base_radius + (safe_top_radius - base_radius) * t,
+                            z = base_z + (top_z - base_z) * z_fraction,
+                            region = region,
+                            quality = quality,
+                            corner_radii = keycap_corner_radii_lerp(base_corner_radii, safe_top_corner_radii, t)
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+module keycap_jis_enter_top_hat_cap(
+    left,
+    right,
+    front,
+    back,
+    notch_width,
+    notch_depth,
+    top_inset,
+    top_radius,
+    bottom_radius,
+    height,
+    shoulder_angle,
+    top_center_height,
+    pitch_deg = 0,
+    roll_deg = 0,
+    surface_z_shift = 0,
+    top_shape_type = "flat",
+    dish_radius = 45,
+    dish_depth = 0,
+    shoulder_radius = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0,
+    top_corner_radii = undef,
+    bottom_corner_radii = undef
+) {
+    inset_limit = jis_enter_plan_inset_limit(left, right, front, back, notch_width, notch_depth);
+    safe_top_inset = jis_enter_plan_safe_inset(left, right, front, back, notch_width, notch_depth, top_inset);
+    safe_height = abs(height);
+    requested_outset = keycap_top_hat_shoulder_outset(safe_height, shoulder_angle);
+    base_inset = max(safe_top_inset - requested_outset, 0);
+    actual_outset = safe_top_inset - base_inset;
+    safe_top_radius = max(top_radius, 0);
+    has_corner_radii = !is_undef(top_corner_radii) || !is_undef(bottom_corner_radii);
+    safe_top_corner_radii = !has_corner_radii
+        ? undef
+        : keycap_resolved_corner_radii(safe_top_radius, top_corner_radii);
+    base_radius = max(bottom_radius, 0);
+    base_corner_radii = !has_corner_radii
+        ? undef
+        : keycap_resolved_corner_radii(base_radius, bottom_corner_radii);
+    safe_shoulder_radius = abs(keycap_top_hat_safe_shoulder_radius(shoulder_radius));
+    shoulder_radius_limit = max(min(safe_height, actual_outset), 0);
+    shoulder_curve_amount = shoulder_radius_limit <= 0.001
+        ? 0
+        : min(safe_shoulder_radius / shoulder_radius_limit, 1) * (shoulder_radius < 0 ? -1 : 1);
+    shoulder_steps = keycap_top_hat_shoulder_curve_steps(safe_shoulder_radius, quality);
+    bump_side_slope = safe_height <= 0.001 ? 0 : actual_outset / safe_height;
+    join_overlap = 0.05;
+    base_z = height < 0 ? join_overlap : -join_overlap;
+    top_z = height < 0 ? -safe_height : safe_height;
+    region_count = jis_enter_has_notch(left, right, front, back, notch_width, notch_depth) ? 2 : 1;
+    top_hat_top_left = left + safe_top_inset;
+    top_hat_top_right = right - safe_top_inset;
+    top_hat_top_front = front + safe_top_inset;
+    top_hat_top_back = back - safe_top_inset;
+    top_hat_top_width = max(top_hat_top_right - top_hat_top_left, 0.2);
+    top_hat_top_depth = max(top_hat_top_back - top_hat_top_front, 0.2);
+    safe_top_shape_type = top_shape_type == "cylindrical" || top_shape_type == "spherical" ? top_shape_type : "flat";
+    safe_dish_depth = safe_top_shape_type == "flat"
+        ? 0
+        : keycap_clamp_dish_depth(
+            safe_top_shape_type,
+            dish_depth,
+            dish_radius,
+            top_hat_top_left,
+            top_hat_top_right,
+            top_hat_top_front,
+            top_hat_top_back,
+            top_hat_top_width,
+            top_hat_top_depth
+        );
+
+    if (safe_height > 0.001 && inset_limit > 0.001) {
+        keycap_top_plane_transform(top_center_height, pitch_deg, roll_deg, top_offset_x, top_offset_y)
+            translate([0, 0, surface_z_shift])
+                keycap_jis_enter_apply_top_surface(
+                    width = right - left,
+                    depth = back - front,
+                    top_left = top_hat_top_left,
+                    top_right = top_hat_top_right,
+                    top_front = top_hat_top_front,
+                    top_back = top_hat_top_back,
+                    notch_width = notch_width,
+                    notch_depth = notch_depth,
+                    top_radius = safe_top_radius,
+                    top_center_height = top_z,
+                    dish_type = safe_top_shape_type,
+                    dish_depth = safe_dish_depth,
+                    dish_radius = dish_radius,
+                    dish_plan_width = top_hat_top_width,
+                    dish_plan_depth = top_hat_top_depth,
+                    dish_start_left = top_hat_top_left,
+                    dish_start_right = top_hat_top_right,
+                    dish_start_front = top_hat_top_front,
+                    dish_start_back = top_hat_top_back,
+                    quality = quality,
+                    bump_left_slope = bump_side_slope,
+                    bump_right_slope = bump_side_slope,
+                    bump_front_slope = bump_side_slope,
+                    bump_back_slope = bump_side_slope,
+                    top_corner_radii = safe_top_corner_radii
+                )
+                    keycap_jis_enter_top_hat_cap_shape(
+                        left = left,
+                        right = right,
+                        front = front,
+                        back = back,
+                        notch_width = notch_width,
+                        notch_depth = notch_depth,
+                        base_inset = base_inset,
+                        safe_top_inset = safe_top_inset,
+                        base_radius = base_radius,
+                        safe_top_radius = safe_top_radius,
+                        base_z = base_z,
+                        top_z = top_z,
+                        region_count = region_count,
+                        shoulder_curve_amount = shoulder_curve_amount,
+                        shoulder_steps = shoulder_steps,
+                        quality = quality,
+                        base_corner_radii = base_corner_radii,
+                        safe_top_corner_radii = safe_top_corner_radii
+                    );
+    }
+}
+
+module keycap_jis_enter_rect_outer_shell(
+    left,
+    right,
+    front,
+    back,
+    top_center_height,
+    front_angle,
+    back_angle,
+    left_angle,
+    right_angle,
+    bottom_corner_radius,
+    top_corner_radius,
+    pitch_deg = 0,
+    roll_deg = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0,
+    shoulder_radius = 0,
+    top_edge_radius = 0
+) {
+    if (right - left > 0.001 && back - front > 0.001) {
+        top_left = left + top_center_height * tan(left_angle);
+        top_right = right - top_center_height * tan(right_angle);
+        top_front = front + top_center_height * tan(front_angle);
+        top_back = back - top_center_height * tan(back_angle);
+        shoulder_outset = max(min(
+            max(top_left - left, 0),
+            max(right - top_right, 0),
+            max(top_front - front, 0),
+            max(back - top_back, 0)
+        ), 0);
+        safe_shoulder_radius = abs(keycap_top_hat_safe_shoulder_radius(shoulder_radius));
+        shoulder_radius_limit = max(min(top_center_height, shoulder_outset), 0);
+        shoulder_curve_amount = shoulder_radius_limit <= 0.001
+            ? 0
+            : min(safe_shoulder_radius / shoulder_radius_limit, 1) * (shoulder_radius < 0 ? -1 : 1);
+        shoulder_steps = keycap_top_hat_shoulder_curve_steps(safe_shoulder_radius, quality);
+        top_width = max(top_right - top_left, 0.2);
+        top_depth = max(top_back - top_front, 0.2);
+        effective_top_edge_radius = keycap_top_edge_effective_radius(
+            top_edge_radius,
+            top_center_height,
+            shoulder_outset,
+            top_width,
+            top_depth
+        );
+        top_edge_side_drop = keycap_top_edge_side_drop(effective_top_edge_radius, top_center_height, shoulder_outset);
+        top_edge_top_inset = keycap_top_edge_top_inset(effective_top_edge_radius, top_center_height, shoulder_outset);
+        top_edge_start = top_edge_side_drop <= 0.001
+            ? 1
+            : max(1 - top_edge_side_drop / max(top_center_height, 0.001), 0);
+        top_edge_steps = keycap_top_edge_curve_steps(effective_top_edge_radius, quality);
+        has_top_edge_curve = effective_top_edge_radius > 0.001
+            && top_edge_side_drop > 0.001
+            && top_edge_top_inset > 0.001;
+
+        if (abs(shoulder_curve_amount) <= 0.001 && !has_top_edge_curve) {
+            hull() {
+                keycap_base_face(
+                    left,
+                    right,
+                    front,
+                    back,
+                    bottom_corner_radius,
+                    quality
+                );
+
+                keycap_top_face(
+                    top_left,
+                    top_right,
+                    top_front,
+                    top_back,
+                    top_corner_radius,
+                    top_center_height,
+                    pitch_deg,
+                    roll_deg,
+                    quality,
+                    top_offset_x = top_offset_x,
+                    top_offset_y = top_offset_y
+                );
+            }
+        } else if (!has_top_edge_curve) {
+            for (step = [0 : shoulder_steps - 1]) {
+                hull() {
+                    for (j = [step : step + 1]) {
+                        t = j / shoulder_steps;
+                        z_fraction = keycap_shell_shoulder_z_fraction(t, shoulder_curve_amount);
+                        keycap_shell_section_face(
+                            left = left + (top_left - left) * t,
+                            right = right + (top_right - right) * t,
+                            front = front + (top_front - front) * t,
+                            back = back + (top_back - back) * t,
+                            radius = bottom_corner_radius + (top_corner_radius - bottom_corner_radius) * t,
+                            z = top_center_height * z_fraction,
+                            pitch_deg = pitch_deg,
+                            roll_deg = roll_deg,
+                            quality = quality,
+                            top_offset_x = top_offset_x * t,
+                            top_offset_y = top_offset_y * t,
+                            tilt_amount = z_fraction
+                        );
+                    }
+                }
+            }
+        } else {
+            lower_steps = abs(shoulder_curve_amount) <= 0.001 ? 1 : shoulder_steps;
+            start_z_fraction = keycap_shell_shoulder_z_fraction(top_edge_start, shoulder_curve_amount);
+            start_left = left + (top_left - left) * top_edge_start;
+            start_right = right + (top_right - right) * top_edge_start;
+            start_front = front + (top_front - front) * top_edge_start;
+            start_back = back + (top_back - back) * top_edge_start;
+            start_radius = bottom_corner_radius + (top_corner_radius - bottom_corner_radius) * top_edge_start;
+            edge_top_left = top_left + top_edge_top_inset;
+            edge_top_right = top_right - top_edge_top_inset;
+            edge_top_front = top_front + top_edge_top_inset;
+            edge_top_back = top_back - top_edge_top_inset;
+            edge_top_radius = max(top_corner_radius - top_edge_top_inset, 0);
+
+            if (top_edge_start > 0.001) {
+                for (step = [0 : lower_steps - 1]) {
+                    hull() {
+                        for (j = [step : step + 1]) {
+                            t = top_edge_start * j / lower_steps;
+                            z_fraction = keycap_shell_shoulder_z_fraction(t, shoulder_curve_amount);
+                            keycap_shell_section_face(
+                                left = left + (top_left - left) * t,
+                                right = right + (top_right - right) * t,
+                                front = front + (top_front - front) * t,
+                                back = back + (top_back - back) * t,
+                                radius = bottom_corner_radius + (top_corner_radius - bottom_corner_radius) * t,
+                                z = top_center_height * z_fraction,
+                                pitch_deg = pitch_deg,
+                                roll_deg = roll_deg,
+                                quality = quality,
+                                top_offset_x = top_offset_x * t,
+                                top_offset_y = top_offset_y * t,
+                                tilt_amount = z_fraction
+                            );
+                        }
+                    }
+                }
+            }
+
+            for (step = [0 : top_edge_steps - 1]) {
+                hull() {
+                    for (j = [step : step + 1]) {
+                        u = j / top_edge_steps;
+                        plan_fraction = keycap_top_edge_arc_plan_fraction(
+                            effective_top_edge_radius,
+                            top_center_height,
+                            shoulder_outset,
+                            u
+                        );
+                        lift_fraction = keycap_top_edge_arc_lift_fraction(
+                            effective_top_edge_radius,
+                            top_center_height,
+                            shoulder_outset,
+                            u
+                        );
+                        offset_fraction = top_edge_start + (1 - top_edge_start) * plan_fraction;
+                        z_fraction = start_z_fraction + (1 - start_z_fraction) * lift_fraction;
+                        keycap_shell_section_face(
+                            left = start_left + (edge_top_left - start_left) * plan_fraction,
+                            right = start_right + (edge_top_right - start_right) * plan_fraction,
+                            front = start_front + (edge_top_front - start_front) * plan_fraction,
+                            back = start_back + (edge_top_back - start_back) * plan_fraction,
+                            radius = start_radius + (edge_top_radius - start_radius) * plan_fraction,
+                            z = top_center_height * z_fraction,
+                            pitch_deg = pitch_deg,
+                            roll_deg = roll_deg,
+                            quality = quality,
+                            top_offset_x = top_offset_x * offset_fraction,
+                            top_offset_y = top_offset_y * offset_fraction,
+                            tilt_amount = z_fraction
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+module keycap_jis_enter_outer_shell(
+    width,
+    depth,
+    top_center_height,
+    notch_width,
+    notch_depth,
+    front_angle,
+    back_angle,
+    left_angle,
+    right_angle,
+    bottom_corner_radius,
+    top_corner_radius,
+    pitch_deg = 0,
+    roll_deg = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0,
+    shoulder_radius = 0,
+    top_edge_radius = 0
+) {
+    safe_width = max(width, 0.2);
+    safe_depth = max(depth, 0.2);
+    safe_notch_width = jis_enter_safe_notch_width(safe_width, notch_width);
+    safe_notch_depth = jis_enter_safe_notch_depth(safe_depth, notch_depth);
+    base_left = jis_enter_plan_left(safe_width, safe_notch_width);
+    base_right = jis_enter_plan_right(safe_width, safe_notch_width);
+    base_front = -safe_depth / 2;
+    base_back = safe_depth / 2;
+    notch_x = jis_enter_notch_x(base_left, base_right, safe_notch_width);
+    notch_y = jis_enter_notch_y(base_front, base_back, safe_notch_depth);
+
+    if (jis_enter_has_notch(base_left, base_right, base_front, base_back, safe_notch_width, safe_notch_depth)) {
+        union() {
+            keycap_jis_enter_rect_outer_shell(
+                left = base_left,
+                right = base_right,
+                front = notch_y,
+                back = base_back,
+                top_center_height = top_center_height,
+                front_angle = front_angle,
+                back_angle = back_angle,
+                left_angle = left_angle,
+                right_angle = right_angle,
+                bottom_corner_radius = bottom_corner_radius,
+                top_corner_radius = top_corner_radius,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y,
+                shoulder_radius = shoulder_radius,
+                top_edge_radius = top_edge_radius
+            );
+
+            keycap_jis_enter_rect_outer_shell(
+                left = notch_x,
+                right = base_right,
+                front = base_front,
+                back = base_back,
+                top_center_height = top_center_height,
+                front_angle = front_angle,
+                back_angle = back_angle,
+                left_angle = left_angle,
+                right_angle = right_angle,
+                bottom_corner_radius = bottom_corner_radius,
+                top_corner_radius = top_corner_radius,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y,
+                shoulder_radius = shoulder_radius,
+                top_edge_radius = top_edge_radius
+            );
+        }
+    } else {
+        keycap_jis_enter_rect_outer_shell(
+            left = base_left,
+            right = base_right,
+            front = base_front,
+            back = base_back,
+            top_center_height = top_center_height,
+            front_angle = front_angle,
+            back_angle = back_angle,
+            left_angle = left_angle,
+            right_angle = right_angle,
+            bottom_corner_radius = bottom_corner_radius,
+            top_corner_radius = top_corner_radius,
+            pitch_deg = pitch_deg,
+            roll_deg = roll_deg,
+            quality = quality,
+            top_offset_x = top_offset_x,
+            top_offset_y = top_offset_y,
+            shoulder_radius = shoulder_radius,
+            top_edge_radius = top_edge_radius
+        );
+    }
+}
+
+module keycap_jis_enter_dish_bump(
+    width,
+    depth,
+    top_left,
+    top_right,
+    top_front,
+    top_back,
+    notch_width,
+    notch_depth,
+    top_radius,
+    top_center_height,
+    dish_type,
+    dish_depth,
+    dish_radius,
+    pitch_deg = 0,
+    roll_deg = 0,
+    surface_z_shift = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0,
+    dish_plan_width = undef,
+    dish_plan_depth = undef,
+    dish_start_left = undef,
+    dish_start_right = undef,
+    dish_start_front = undef,
+    dish_start_back = undef,
+    bump_left_slope = 0,
+    bump_right_slope = 0,
+    bump_front_slope = 0,
+    bump_back_slope = 0,
+    top_corner_radii = undef
+) {
+    if (keycap_dish_is_active(dish_type, dish_depth) && dish_depth < 0) {
+        bump_clip_height = abs(dish_depth) + 0.05;
+        resolved_dish_plan_width = is_undef(dish_plan_width) ? width : dish_plan_width;
+        resolved_dish_plan_depth = is_undef(dish_plan_depth) ? depth : dish_plan_depth;
+
+        intersection() {
+            keycap_dish_volume(
+                width = width,
+                depth = depth,
+                top_center_height = top_center_height,
+                dish_type = dish_type,
+                dish_depth = dish_depth,
+                dish_radius = dish_radius,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                z_shift = surface_z_shift,
+                dish_plan_width = resolved_dish_plan_width,
+                dish_plan_depth = resolved_dish_plan_depth,
+                dish_start_left = dish_start_left,
+                dish_start_right = dish_start_right,
+                dish_start_front = dish_start_front,
+                dish_start_back = dish_start_back,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y
+            );
+
+            keycap_jis_enter_top_tapered_prism(
+                left = top_left,
+                right = top_right,
+                front = top_front,
+                back = top_back,
+                notch_width = notch_width,
+                notch_depth = notch_depth,
+                radius = top_radius,
+                top_center_height = top_center_height,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                height = bump_clip_height,
+                base_z = surface_z_shift,
+                left_slope = bump_left_slope,
+                right_slope = bump_right_slope,
+                front_slope = bump_front_slope,
+                back_slope = bump_back_slope,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y,
+                corner_radii = top_corner_radii
+            );
+        }
+    }
+}
+
+module keycap_jis_enter_apply_top_surface(
+    width,
+    depth,
+    top_left,
+    top_right,
+    top_front,
+    top_back,
+    notch_width,
+    notch_depth,
+    top_radius,
+    top_center_height,
+    dish_type = "spherical",
+    dish_depth = 0,
+    dish_radius = 45,
+    pitch_deg = 0,
+    roll_deg = 0,
+    surface_z_shift = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0,
+    dish_plan_width = undef,
+    dish_plan_depth = undef,
+    dish_start_left = undef,
+    dish_start_right = undef,
+    dish_start_front = undef,
+    dish_start_back = undef,
+    bump_left_slope = 0,
+    bump_right_slope = 0,
+    bump_front_slope = 0,
+    bump_back_slope = 0,
+    top_corner_radii = undef
+) {
+    resolved_dish_plan_width = is_undef(dish_plan_width) ? width : dish_plan_width;
+    resolved_dish_plan_depth = is_undef(dish_plan_depth) ? depth : dish_plan_depth;
+    resolved_dish_start_left = is_undef(dish_start_left) ? top_left : dish_start_left;
+    resolved_dish_start_right = is_undef(dish_start_right) ? top_right : dish_start_right;
+    resolved_dish_start_front = is_undef(dish_start_front) ? top_front : dish_start_front;
+    resolved_dish_start_back = is_undef(dish_start_back) ? top_back : dish_start_back;
+
+    if (!keycap_dish_is_active(dish_type, dish_depth)) {
+        children();
+    } else if (dish_depth > 0) {
+        difference() {
+            children();
+            keycap_dish_cut(
+                width = width,
+                depth = depth,
+                top_center_height = top_center_height,
+                dish_type = dish_type,
+                dish_depth = dish_depth,
+                dish_radius = dish_radius,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                surface_z_shift = surface_z_shift,
+                dish_plan_width = resolved_dish_plan_width,
+                dish_plan_depth = resolved_dish_plan_depth,
+                dish_start_left = resolved_dish_start_left,
+                dish_start_right = resolved_dish_start_right,
+                dish_start_front = resolved_dish_start_front,
+                dish_start_back = resolved_dish_start_back,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y
+            );
+        }
+    } else {
+        union() {
+            children();
+            keycap_jis_enter_dish_bump(
+                width = width,
+                depth = depth,
+                top_left = top_left,
+                top_right = top_right,
+                top_front = top_front,
+                top_back = top_back,
+                notch_width = notch_width,
+                notch_depth = notch_depth,
+                top_radius = top_radius,
+                top_center_height = top_center_height,
+                dish_type = dish_type,
+                dish_depth = dish_depth,
+                dish_radius = dish_radius,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                surface_z_shift = surface_z_shift,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y,
+                dish_plan_width = resolved_dish_plan_width,
+                dish_plan_depth = resolved_dish_plan_depth,
+                dish_start_left = resolved_dish_start_left,
+                dish_start_right = resolved_dish_start_right,
+                dish_start_front = resolved_dish_start_front,
+                dish_start_back = resolved_dish_start_back,
+                bump_left_slope = bump_left_slope,
+                bump_right_slope = bump_right_slope,
+                bump_front_slope = bump_front_slope,
+                bump_back_slope = bump_back_slope,
+                top_corner_radii = top_corner_radii
+            );
+        }
+    }
+}
+
+module keycap_jis_enter_rect_inner_clearance_volume(
+    left,
+    right,
+    front,
+    back,
+    inner_height,
+    top_center_height,
+    front_angle,
+    back_angle,
+    left_angle,
+    right_angle,
+    bottom_corner_radius,
+    top_corner_radius,
+    pitch_deg = 0,
+    roll_deg = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0,
+    bottom_extension = 1,
+    shoulder_radius = 0
+) {
+    if (right - left > 0.001 && back - front > 0.001) {
+        keycap_rect_inner_clearance_volume(
+            left = left,
+            right = right,
+            front = front,
+            back = back,
+            top_center_height = top_center_height,
+            inner_height = inner_height,
+            front_angle = front_angle,
+            back_angle = back_angle,
+            left_angle = left_angle,
+            right_angle = right_angle,
+            bottom_corner_radius = bottom_corner_radius,
+            top_corner_radius = top_corner_radius,
+            pitch_deg = pitch_deg,
+            roll_deg = roll_deg,
+            quality = quality,
+            top_offset_x = top_offset_x,
+            top_offset_y = top_offset_y,
+            bottom_extension = bottom_extension,
+            shoulder_radius = shoulder_radius
+        );
+    }
+}
+
+module keycap_jis_enter_inner_clearance_volume(
+    width,
+    depth,
+    top_center_height,
+    notch_width,
+    notch_depth,
+    wall,
+    top_thickness,
+    dish_depth,
+    front_angle,
+    back_angle,
+    left_angle,
+    right_angle,
+    bottom_corner_radius,
+    top_corner_radius,
+    pitch_deg = 0,
+    roll_deg = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0,
+    bottom_extension = 1,
+    shoulder_radius = 0
+) {
+    safe_width = max(width, 0.2);
+    safe_depth = max(depth, 0.2);
+    safe_notch_width = jis_enter_safe_notch_width(safe_width, notch_width);
+    safe_notch_depth = jis_enter_safe_notch_depth(safe_depth, notch_depth);
+    inner_height = keycap_inner_height(top_center_height, dish_depth, top_thickness);
+
+    outer_left = jis_enter_plan_left(safe_width, safe_notch_width);
+    outer_right = jis_enter_plan_right(safe_width, safe_notch_width);
+    outer_front = -safe_depth / 2;
+    outer_back = safe_depth / 2;
+    notch_x = jis_enter_notch_x(outer_left, outer_right, safe_notch_width);
+    notch_y = jis_enter_notch_y(outer_front, outer_back, safe_notch_depth);
+
+    inner_left = outer_left + wall;
+    inner_right = outer_right - wall;
+    inner_front = outer_front + wall;
+    inner_back = outer_back - wall;
+    inner_notch_x = notch_x + wall;
+    inner_notch_y = notch_y + wall;
+    inner_bottom_radius = keycap_inner_corner_radius(bottom_corner_radius, wall);
+    inner_top_radius = keycap_inner_corner_radius(top_corner_radius, wall);
+
+    if (inner_right - inner_left > 0.2 && inner_back - inner_front > 0.2) {
+        if (jis_enter_has_notch(outer_left, outer_right, outer_front, outer_back, safe_notch_width, safe_notch_depth)) {
+            union() {
+                keycap_jis_enter_rect_inner_clearance_volume(
+                    left = inner_left,
+                    right = inner_right,
+                    front = inner_notch_y,
+                    back = inner_back,
+                    inner_height = inner_height,
+                    top_center_height = top_center_height,
+                    front_angle = front_angle,
+                    back_angle = back_angle,
+                    left_angle = left_angle,
+                    right_angle = right_angle,
+                    bottom_corner_radius = inner_bottom_radius,
+                    top_corner_radius = inner_top_radius,
+                    pitch_deg = pitch_deg,
+                    roll_deg = roll_deg,
+                    quality = quality,
+                    top_offset_x = top_offset_x,
+                    top_offset_y = top_offset_y,
+                    bottom_extension = bottom_extension,
+                    shoulder_radius = shoulder_radius
+                );
+
+                keycap_jis_enter_rect_inner_clearance_volume(
+                    left = inner_notch_x,
+                    right = inner_right,
+                    front = inner_front,
+                    back = inner_back,
+                    inner_height = inner_height,
+                    top_center_height = top_center_height,
+                    front_angle = front_angle,
+                    back_angle = back_angle,
+                    left_angle = left_angle,
+                    right_angle = right_angle,
+                    bottom_corner_radius = inner_bottom_radius,
+                    top_corner_radius = inner_top_radius,
+                    pitch_deg = pitch_deg,
+                    roll_deg = roll_deg,
+                    quality = quality,
+                    top_offset_x = top_offset_x,
+                    top_offset_y = top_offset_y,
+                    bottom_extension = bottom_extension,
+                    shoulder_radius = shoulder_radius
+                );
+            }
+        } else {
+            keycap_jis_enter_rect_inner_clearance_volume(
+                left = inner_left,
+                right = inner_right,
+                front = inner_front,
+                back = inner_back,
+                inner_height = inner_height,
+                top_center_height = top_center_height,
+                front_angle = front_angle,
+                back_angle = back_angle,
+                left_angle = left_angle,
+                right_angle = right_angle,
+                bottom_corner_radius = inner_bottom_radius,
+                top_corner_radius = inner_top_radius,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y,
+                bottom_extension = bottom_extension,
+                shoulder_radius = shoulder_radius
+            );
+        }
+    }
+}
+
+module keycap_jis_enter_shell(
+    width,
+    depth,
+    top_center_height,
+    notch_width,
+    notch_depth,
+    wall,
+    top_thickness = 1.5,
+    front_angle = 15,
+    back_angle = 15,
+    left_angle = 10,
+    right_angle = 10,
+    bottom_corner_radius = 1.0,
+    top_corner_radius = 1.5,
+    top_shape_type = "spherical",
+    dish_radius = 45,
+    dish_depth = 1.0,
+    top_hat_enabled = false,
+    top_hat_inset = 1.5,
+    top_hat_top_radius = 1.8,
+    top_hat_top_radii = undef,
+    top_hat_bottom_radius = 3.2,
+    top_hat_bottom_radii = undef,
+    top_hat_height = 1.4,
+    top_hat_shoulder_angle = 45,
+    top_hat_shoulder_radius = 0,
+    top_hat_shape_type = "flat",
+    top_hat_dish_radius = 45,
+    top_hat_dish_depth = 0,
+    keycap_shoulder_radius = 0,
+    keycap_edge_radius = 0,
+    pitch_deg = 0,
+    roll_deg = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0
+) {
+    safe_width = max(width, 0.2);
+    safe_depth = max(depth, 0.2);
+    safe_notch_width = jis_enter_safe_notch_width(safe_width, notch_width);
+    safe_notch_depth = jis_enter_safe_notch_depth(safe_depth, notch_depth);
+    base_left = jis_enter_plan_left(safe_width, safe_notch_width);
+    base_right = jis_enter_plan_right(safe_width, safe_notch_width);
+    base_front = -safe_depth / 2;
+    base_back = safe_depth / 2;
+    top_left = base_left + top_center_height * tan(left_angle);
+    top_right = base_right - top_center_height * tan(right_angle);
+    top_front = base_front + top_center_height * tan(front_angle);
+    top_back = base_back - top_center_height * tan(back_angle);
+    top_notch_x = jis_enter_notch_x(base_left, base_right, safe_notch_width)
+        + top_center_height * tan(left_angle);
+    top_notch_y = jis_enter_notch_y(base_front, base_back, safe_notch_depth)
+        + top_center_height * tan(front_angle);
+    shoulder_outset = max(min(
+        max(top_left - base_left, 0),
+        max(base_right - top_right, 0),
+        max(top_front - base_front, 0),
+        max(base_back - top_back, 0)
+    ), 0);
+    top_surface_inset = keycap_top_edge_surface_inset(
+        keycap_edge_radius,
+        top_center_height,
+        shoulder_outset,
+        max(top_right - top_notch_x, 0.2),
+        max(top_back - top_notch_y, 0.2)
+    );
+    surface_top_left = top_left + top_surface_inset;
+    surface_top_right = top_right - top_surface_inset;
+    surface_top_front = top_front + top_surface_inset;
+    surface_top_back = top_back - top_surface_inset;
+    surface_top_radius = max(top_corner_radius - top_surface_inset, 0);
+
+    difference() {
+        union() {
+            keycap_jis_enter_apply_top_surface(
+                width = safe_width,
+                depth = safe_depth,
+                top_left = surface_top_left,
+                top_right = surface_top_right,
+                top_front = surface_top_front,
+                top_back = surface_top_back,
+                notch_width = safe_notch_width,
+                notch_depth = safe_notch_depth,
+                top_radius = surface_top_radius,
+                top_center_height = top_center_height,
+                dish_type = top_shape_type,
+                dish_depth = dish_depth,
+                dish_radius = dish_radius,
+                dish_start_left = top_left,
+                dish_start_right = top_right,
+                dish_start_front = top_front,
+                dish_start_back = top_back,
+                bump_left_slope = tan(left_angle),
+                bump_right_slope = tan(right_angle),
+                bump_front_slope = tan(front_angle),
+                bump_back_slope = tan(back_angle),
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y
+            )
+                keycap_jis_enter_outer_shell(
+                    width = safe_width,
+                    depth = safe_depth,
+                    top_center_height = top_center_height,
+                    notch_width = safe_notch_width,
+                    notch_depth = safe_notch_depth,
+                    front_angle = front_angle,
+                    back_angle = back_angle,
+                    left_angle = left_angle,
+                    right_angle = right_angle,
+                    bottom_corner_radius = bottom_corner_radius,
+                    top_corner_radius = top_corner_radius,
+                    pitch_deg = pitch_deg,
+                    roll_deg = roll_deg,
+                    quality = quality,
+                    top_offset_x = top_offset_x,
+                    top_offset_y = top_offset_y,
+                    shoulder_radius = keycap_shoulder_radius,
+                    top_edge_radius = keycap_edge_radius
+                );
+
+            if (top_hat_enabled && top_hat_height > 0) {
+                keycap_jis_enter_top_hat_cap(
+                    left = top_left,
+                    right = top_right,
+                    front = top_front,
+                    back = top_back,
+                    notch_width = safe_notch_width,
+                    notch_depth = safe_notch_depth,
+                    top_inset = top_hat_inset,
+                    top_radius = top_hat_top_radius,
+                    bottom_radius = top_hat_bottom_radius,
+                    bottom_corner_radii = top_hat_bottom_radii,
+                    top_corner_radii = top_hat_top_radii,
+                    height = top_hat_height,
+                    shoulder_angle = top_hat_shoulder_angle,
+                    shoulder_radius = top_hat_shoulder_radius,
+                    top_shape_type = top_hat_shape_type,
+                    dish_radius = top_hat_dish_radius,
+                    dish_depth = top_hat_dish_depth,
+                    top_center_height = top_center_height,
+                    pitch_deg = pitch_deg,
+                    roll_deg = roll_deg,
+                    surface_z_shift = keycap_dish_surface_offset(
+                        0,
+                        0,
+                        top_shape_type,
+                        dish_depth,
+                        dish_radius,
+                        safe_width,
+                        safe_depth
+                    ),
+                    quality = quality,
+                    top_offset_x = top_offset_x,
+                    top_offset_y = top_offset_y
+                );
+            }
+        }
+
+        keycap_jis_enter_inner_clearance_volume(
+            width = safe_width,
+            depth = safe_depth,
+            top_center_height = top_center_height,
+            notch_width = safe_notch_width,
+            notch_depth = safe_notch_depth,
+            wall = wall,
+            top_thickness = top_thickness,
+            dish_depth = dish_depth,
+            front_angle = front_angle,
+            back_angle = back_angle,
+            left_angle = left_angle,
+            right_angle = right_angle,
+            bottom_corner_radius = bottom_corner_radius,
+            top_corner_radius = top_corner_radius,
+            pitch_deg = pitch_deg,
+            roll_deg = roll_deg,
+            quality = quality,
+            top_offset_x = top_offset_x,
+            top_offset_y = top_offset_y,
+            shoulder_radius = keycap_shoulder_radius
+        );
+
+        if (top_hat_enabled && top_hat_height < 0) {
+            keycap_jis_enter_top_hat_cap(
+                left = top_left,
+                right = top_right,
+                front = top_front,
+                back = top_back,
+                notch_width = safe_notch_width,
+                notch_depth = safe_notch_depth,
+                top_inset = top_hat_inset,
+                top_radius = top_hat_top_radius,
+                bottom_radius = top_hat_bottom_radius,
+                bottom_corner_radii = top_hat_bottom_radii,
+                top_corner_radii = top_hat_top_radii,
+                height = top_hat_height,
+                shoulder_angle = top_hat_shoulder_angle,
+                shoulder_radius = top_hat_shoulder_radius,
+                top_shape_type = top_hat_shape_type,
+                dish_radius = top_hat_dish_radius,
+                dish_depth = top_hat_dish_depth,
+                top_center_height = top_center_height,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                surface_z_shift = keycap_dish_surface_offset(
+                    0,
+                    0,
+                    top_shape_type,
+                    dish_depth,
+                    dish_radius,
+                    safe_width,
+                    safe_depth
+                ),
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y
+            );
+        }
+    }
+}
+
+function jis_enter_typewriter_is_axis_aligned(pitch_deg, roll_deg, top_offset_x = 0, top_offset_y = 0) =
+    abs(pitch_deg) <= 0.001
+    && abs(roll_deg) <= 0.001
+    && abs(top_offset_x) <= 0.001
+    && abs(top_offset_y) <= 0.001;
+function jis_enter_typewriter_plan_has_inner_profile(left, right, front, back, notch_width, notch_depth, inset) =
+    let(
+        safe_inset = max(inset, 0),
+        inner_left = left + safe_inset,
+        inner_right = right - safe_inset,
+        inner_front = front + safe_inset,
+        inner_back = back - safe_inset,
+        inner_notch_x = jis_enter_notch_x(left, right, notch_width) + safe_inset,
+        inner_notch_y = jis_enter_notch_y(front, back, notch_depth) + safe_inset
+    )
+    inner_right - inner_left > 0.001
+    && inner_back - inner_front > 0.001
+    && inner_notch_x < inner_right - 0.001
+    && inner_notch_y < inner_back - 0.001;
+function jis_enter_typewriter_plan_corner_radius(left, right, front, back, notch_width, notch_depth, radius) =
+    let(
+        width = jis_enter_coord_width(left, right),
+        depth = jis_enter_coord_depth(front, back),
+        safe_notch_width = jis_enter_coord_notch_width(left, right, notch_width),
+        safe_notch_depth = jis_enter_coord_notch_depth(front, back, notch_depth),
+        lower_width = max(width - safe_notch_width, 0.2),
+        upper_depth = max(depth - safe_notch_depth, 0.2),
+        radius_limit = min(width, depth, lower_width, upper_depth) / 2
+    )
+    min(max(radius, 0), max(radius_limit, 0));
+jis_enter_typewriter_rim_join_overlap = 0.02;
+
+module keycap_jis_enter_typewriter_plan_profile(
+    left,
+    right,
+    front,
+    back,
+    notch_width,
+    notch_depth,
+    radius,
+    quality = "export"
+) {
+    safe_notch_width = jis_enter_coord_notch_width(left, right, notch_width);
+    safe_notch_depth = jis_enter_coord_notch_depth(front, back, notch_depth);
+    notch_x = jis_enter_notch_x(left, right, safe_notch_width);
+    notch_y = jis_enter_notch_y(front, back, safe_notch_depth);
+    safe_radius = jis_enter_typewriter_plan_corner_radius(
+        left,
+        right,
+        front,
+        back,
+        safe_notch_width,
+        safe_notch_depth,
+        radius
+    );
+
+    if (jis_enter_has_notch(left, right, front, back, safe_notch_width, safe_notch_depth)) {
+        union() {
+            rounded_rect_coords(
+                left,
+                right,
+                notch_y,
+                back,
+                safe_radius,
+                quality
+            );
+
+            rounded_rect_coords(
+                notch_x,
+                right,
+                front,
+                back,
+                safe_radius,
+                quality
+            );
+        }
+    } else {
+        rounded_rect_coords(
+            left,
+            right,
+            front,
+            back,
+            safe_radius,
+            quality
+        );
+    }
+}
+
+module keycap_jis_enter_typewriter_top_prism(
+    width,
+    depth,
+    notch_width,
+    notch_depth,
+    corner_radius,
+    top_center_height,
+    pitch_deg = 0,
+    roll_deg = 0,
+    height = 1,
+    base_z = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0
+) {
+    safe_width = max(width, 0.2);
+    safe_depth = max(depth, 0.2);
+    safe_notch_width = jis_enter_safe_notch_width(safe_width, notch_width);
+    safe_notch_depth = jis_enter_safe_notch_depth(safe_depth, notch_depth);
+    left = jis_enter_plan_left(safe_width, safe_notch_width);
+    right = jis_enter_plan_right(safe_width, safe_notch_width);
+    front = -safe_depth / 2;
+    back = safe_depth / 2;
+
+    keycap_top_plane_transform(top_center_height, pitch_deg, roll_deg, top_offset_x, top_offset_y)
+        translate([0, 0, base_z])
+            linear_extrude(height = max(height, 0.01))
+                keycap_jis_enter_typewriter_plan_profile(
+                    left = left,
+                    right = right,
+                    front = front,
+                    back = back,
+                    notch_width = safe_notch_width,
+                    notch_depth = safe_notch_depth,
+                    radius = corner_radius,
+                    quality = quality
+                );
+}
+
+module keycap_jis_enter_typewriter_dish_bump(
+    width,
+    depth,
+    notch_width,
+    notch_depth,
+    corner_radius,
+    top_center_height,
+    dish_type,
+    dish_depth,
+    dish_radius,
+    pitch_deg = 0,
+    roll_deg = 0,
+    surface_z_shift = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0
+) {
+    if (keycap_dish_is_active(dish_type, dish_depth) && dish_depth < 0) {
+        bump_clip_height = max(abs(dish_depth) + max(dish_radius, 0.1) + 2, 2);
+
+        intersection() {
+            keycap_dish_volume(
+                width = width,
+                depth = depth,
+                top_center_height = top_center_height,
+                dish_type = dish_type,
+                dish_depth = dish_depth,
+                dish_radius = dish_radius,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                z_shift = surface_z_shift,
+                dish_plan_width = width,
+                dish_plan_depth = depth,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y
+            );
+
+            keycap_jis_enter_typewriter_top_prism(
+                width = width,
+                depth = depth,
+                notch_width = notch_width,
+                notch_depth = notch_depth,
+                corner_radius = corner_radius,
+                top_center_height = top_center_height,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                height = bump_clip_height,
+                base_z = surface_z_shift,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y
+            );
+        }
+    }
+}
+
+module keycap_jis_enter_typewriter_apply_top_surface(
+    width,
+    depth,
+    notch_width,
+    notch_depth,
+    corner_radius,
+    top_center_height,
+    dish_type = "spherical",
+    dish_depth = 0,
+    dish_radius = 45,
+    pitch_deg = 0,
+    roll_deg = 0,
+    surface_z_shift = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0
+) {
+    if (!keycap_dish_is_active(dish_type, dish_depth)) {
+        children();
+    } else if (dish_depth > 0) {
+        difference() {
+            children();
+            keycap_dish_cut(
+                width = width,
+                depth = depth,
+                top_center_height = top_center_height,
+                dish_type = dish_type,
+                dish_depth = dish_depth,
+                dish_radius = dish_radius,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                surface_z_shift = surface_z_shift,
+                dish_plan_width = width,
+                dish_plan_depth = depth,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y
+            );
+        }
+    } else {
+        union() {
+            children();
+            keycap_jis_enter_typewriter_dish_bump(
+                width = width,
+                depth = depth,
+                notch_width = notch_width,
+                notch_depth = notch_depth,
+                corner_radius = corner_radius,
+                top_center_height = top_center_height,
+                dish_type = dish_type,
+                dish_depth = dish_depth,
+                dish_radius = dish_radius,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                surface_z_shift = surface_z_shift,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y
+            );
+        }
+    }
+}
+
+module keycap_jis_enter_typewriter_plan_ring(
+    width,
+    depth,
+    notch_width,
+    notch_depth,
+    corner_radius,
+    band_width,
+    quality = "export"
+) {
+    safe_width = max(width, 0.2);
+    safe_depth = max(depth, 0.2);
+    safe_notch_width = jis_enter_safe_notch_width(safe_width, notch_width);
+    safe_notch_depth = jis_enter_safe_notch_depth(safe_depth, notch_depth);
+    safe_band_width = max(band_width, 0);
+    left = jis_enter_plan_left(safe_width, safe_notch_width);
+    right = jis_enter_plan_right(safe_width, safe_notch_width);
+    front = -safe_depth / 2;
+    back = safe_depth / 2;
+    inner_left = left + safe_band_width;
+    inner_right = right - safe_band_width;
+    inner_front = front + safe_band_width;
+    inner_back = back - safe_band_width;
+    outer_radius = jis_enter_typewriter_plan_corner_radius(
+        left,
+        right,
+        front,
+        back,
+        safe_notch_width,
+        safe_notch_depth,
+        corner_radius
+    );
+    inner_radius = jis_enter_typewriter_plan_corner_radius(
+        inner_left,
+        inner_right,
+        inner_front,
+        inner_back,
+        safe_notch_width,
+        safe_notch_depth,
+        max(corner_radius - safe_band_width, 0)
+    );
+
+    difference() {
+        keycap_jis_enter_typewriter_plan_profile(
+            left = left,
+            right = right,
+            front = front,
+            back = back,
+            notch_width = safe_notch_width,
+            notch_depth = safe_notch_depth,
+            radius = outer_radius,
+            quality = quality
+        );
+
+        if (jis_enter_typewriter_plan_has_inner_profile(left, right, front, back, safe_notch_width, safe_notch_depth, safe_band_width)) {
+            keycap_jis_enter_typewriter_plan_profile(
+                left = inner_left,
+                right = inner_right,
+                front = inner_front,
+                back = inner_back,
+                notch_width = safe_notch_width,
+                notch_depth = safe_notch_depth,
+                radius = inner_radius,
+                quality = quality
+            );
+        }
+    }
+}
+
+module keycap_jis_enter_typewriter_ring_prism(
+    width,
+    depth,
+    notch_width,
+    notch_depth,
+    corner_radius,
+    band_width,
+    base_z = -1,
+    height = 8,
+    quality = "export"
+) {
+    translate([0, 0, base_z])
+        linear_extrude(height = max(height, 0.01))
+            keycap_jis_enter_typewriter_plan_ring(
+                width = width,
+                depth = depth,
+                notch_width = notch_width,
+                notch_depth = notch_depth,
+                corner_radius = corner_radius,
+                band_width = band_width,
+                quality = quality
+            );
+}
+
+module keycap_jis_enter_typewriter_cap(
+    width,
+    depth,
+    top_center_height,
+    notch_width,
+    notch_depth,
+    corner_radius = 2,
+    top_shape_type = "spherical",
+    dish_radius = 45,
+    dish_depth = 0,
+    pitch_deg = 0,
+    roll_deg = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0
+) {
+    safe_width = max(width, 0.2);
+    safe_depth = max(depth, 0.2);
+    safe_notch_width = jis_enter_safe_notch_width(safe_width, notch_width);
+    safe_notch_depth = jis_enter_safe_notch_depth(safe_depth, notch_depth);
+    left = jis_enter_plan_left(safe_width, safe_notch_width);
+    right = jis_enter_plan_right(safe_width, safe_notch_width);
+    front = -safe_depth / 2;
+    back = safe_depth / 2;
+    safe_corner_radius = jis_enter_typewriter_plan_corner_radius(
+        left,
+        right,
+        front,
+        back,
+        safe_notch_width,
+        safe_notch_depth,
+        corner_radius
+    );
+
+    keycap_jis_enter_typewriter_apply_top_surface(
+        width = safe_width,
+        depth = safe_depth,
+        notch_width = safe_notch_width,
+        notch_depth = safe_notch_depth,
+        corner_radius = safe_corner_radius,
+        top_center_height = top_center_height,
+        dish_type = top_shape_type,
+        dish_depth = dish_depth,
+        dish_radius = dish_radius,
+        pitch_deg = pitch_deg,
+        roll_deg = roll_deg,
+        quality = quality,
+        top_offset_x = top_offset_x,
+        top_offset_y = top_offset_y
+    )
+        if (jis_enter_typewriter_is_axis_aligned(pitch_deg, roll_deg, top_offset_x, top_offset_y)) {
+            linear_extrude(height = top_center_height)
+                keycap_jis_enter_typewriter_plan_profile(
+                    left = left,
+                    right = right,
+                    front = front,
+                    back = back,
+                    notch_width = safe_notch_width,
+                    notch_depth = safe_notch_depth,
+                    radius = safe_corner_radius,
+                    quality = quality
+                );
+        } else {
+            keycap_jis_enter_outer_shell(
+                width = safe_width,
+                depth = safe_depth,
+                top_center_height = top_center_height,
+                notch_width = safe_notch_width,
+                notch_depth = safe_notch_depth,
+                front_angle = 0,
+                back_angle = 0,
+                left_angle = 0,
+                right_angle = 0,
+                bottom_corner_radius = safe_corner_radius,
+                top_corner_radius = safe_corner_radius,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y
+            );
+        }
+}
+
+module keycap_jis_enter_typewriter_band_cap(
+    width,
+    depth,
+    top_center_height,
+    notch_width,
+    notch_depth,
+    band_width,
+    corner_radius = 2,
+    top_shape_type = "spherical",
+    dish_radius = 45,
+    dish_depth = 0,
+    pitch_deg = 0,
+    roll_deg = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0
+) {
+    safe_width = max(width, 0.2);
+    safe_depth = max(depth, 0.2);
+    safe_notch_width = jis_enter_safe_notch_width(safe_width, notch_width);
+    safe_notch_depth = jis_enter_safe_notch_depth(safe_depth, notch_depth);
+    safe_band_width = max(band_width, 0);
+    left = jis_enter_plan_left(safe_width, safe_notch_width);
+    right = jis_enter_plan_right(safe_width, safe_notch_width);
+    front = -safe_depth / 2;
+    back = safe_depth / 2;
+    ring_clip_height = top_center_height + max(abs(dish_depth), 0) + 2;
+
+    if (jis_enter_typewriter_is_axis_aligned(pitch_deg, roll_deg, top_offset_x, top_offset_y)) {
+        intersection() {
+            keycap_jis_enter_typewriter_cap(
+                width = safe_width,
+                depth = safe_depth,
+                top_center_height = top_center_height,
+                notch_width = safe_notch_width,
+                notch_depth = safe_notch_depth,
+                corner_radius = corner_radius,
+                top_shape_type = top_shape_type,
+                dish_radius = dish_radius,
+                dish_depth = dish_depth,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y
+            );
+
+            keycap_jis_enter_typewriter_ring_prism(
+                width = safe_width,
+                depth = safe_depth,
+                notch_width = safe_notch_width,
+                notch_depth = safe_notch_depth,
+                corner_radius = corner_radius,
+                band_width = safe_band_width,
+                base_z = -1,
+                height = ring_clip_height,
+                quality = quality
+            );
+        }
+    } else {
+        difference() {
+            keycap_jis_enter_typewriter_cap(
+                width = safe_width,
+                depth = safe_depth,
+                top_center_height = top_center_height,
+                notch_width = safe_notch_width,
+                notch_depth = safe_notch_depth,
+                corner_radius = corner_radius,
+                top_shape_type = top_shape_type,
+                dish_radius = dish_radius,
+                dish_depth = dish_depth,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y
+            );
+
+            if (jis_enter_typewriter_plan_has_inner_profile(left, right, front, back, safe_notch_width, safe_notch_depth, safe_band_width)) {
+                keycap_jis_enter_typewriter_cap(
+                    width = safe_width - safe_band_width * 2,
+                    depth = safe_depth - safe_band_width * 2,
+                    top_center_height = top_center_height,
+                    notch_width = safe_notch_width,
+                    notch_depth = safe_notch_depth,
+                    corner_radius = max(corner_radius - safe_band_width, 0),
+                    top_shape_type = top_shape_type,
+                    dish_radius = dish_radius,
+                    dish_depth = dish_depth,
+                    pitch_deg = pitch_deg,
+                    roll_deg = roll_deg,
+                    quality = quality,
+                    top_offset_x = top_offset_x,
+                    top_offset_y = top_offset_y
+                );
+            }
+        }
+    }
+}
+
+module keycap_jis_enter_typewriter_rim_side_shell(
+    width,
+    depth,
+    top_center_height,
+    notch_width,
+    notch_depth,
+    band_width,
+    corner_radius = 2,
+    top_shape_type = "spherical",
+    dish_radius = 45,
+    dish_depth = 0,
+    pitch_deg = 0,
+    roll_deg = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0
+) {
+    safe_band_width = max(band_width, 0);
+
+    if (safe_band_width > 0) {
+        keycap_jis_enter_typewriter_band_cap(
+            width = width,
+            depth = depth,
+            top_center_height = top_center_height,
+            notch_width = notch_width,
+            notch_depth = notch_depth,
+            band_width = safe_band_width,
+            corner_radius = corner_radius,
+            top_shape_type = top_shape_type,
+            dish_radius = dish_radius,
+            dish_depth = dish_depth,
+            pitch_deg = pitch_deg,
+            roll_deg = roll_deg,
+            quality = quality,
+            top_offset_x = top_offset_x,
+            top_offset_y = top_offset_y
+        );
+    }
+}
+
+module keycap_jis_enter_typewriter_rim_top_extension(
+    width,
+    depth,
+    top_center_height,
+    notch_width,
+    notch_depth,
+    band_width,
+    height_up = 0,
+    corner_radius = 2,
+    top_shape_type = "spherical",
+    dish_radius = 45,
+    dish_depth = 0,
+    pitch_deg = 0,
+    roll_deg = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0
+) {
+    safe_band_width = max(band_width, 0);
+
+    if (safe_band_width > 0 && height_up > 0) {
+        difference() {
+            keycap_jis_enter_typewriter_band_cap(
+                width = width,
+                depth = depth,
+                top_center_height = top_center_height + height_up,
+                notch_width = notch_width,
+                notch_depth = notch_depth,
+                band_width = safe_band_width,
+                corner_radius = corner_radius,
+                top_shape_type = top_shape_type,
+                dish_radius = dish_radius,
+                dish_depth = dish_depth,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y
+            );
+
+            keycap_jis_enter_typewriter_band_cap(
+                width = width,
+                depth = depth,
+                top_center_height = max(top_center_height - jis_enter_typewriter_rim_join_overlap, 0.01),
+                notch_width = notch_width,
+                notch_depth = notch_depth,
+                band_width = safe_band_width,
+                corner_radius = corner_radius,
+                top_shape_type = top_shape_type,
+                dish_radius = dish_radius,
+                dish_depth = dish_depth,
+                pitch_deg = pitch_deg,
+                roll_deg = roll_deg,
+                quality = quality,
+                top_offset_x = top_offset_x,
+                top_offset_y = top_offset_y
+            );
+        }
+    }
+}
+
+module keycap_jis_enter_typewriter_rim_bottom_extension(
+    width,
+    depth,
+    notch_width,
+    notch_depth,
+    band_width,
+    height_down = 0,
+    corner_radius = 2,
+    quality = "export"
+) {
+    safe_band_width = max(band_width, 0);
+
+    if (safe_band_width > 0 && height_down > 0) {
+        translate([0, 0, -height_down])
+            linear_extrude(height = height_down + jis_enter_typewriter_rim_join_overlap)
+                keycap_jis_enter_typewriter_plan_ring(
+                    width = width,
+                    depth = depth,
+                    notch_width = notch_width,
+                    notch_depth = notch_depth,
+                    corner_radius = corner_radius,
+                    band_width = safe_band_width,
+                    quality = quality
+                );
+    }
+}
+
+module keycap_jis_enter_typewriter_rim(
+    width,
+    depth,
+    top_center_height,
+    notch_width,
+    notch_depth,
+    band_width,
+    height_up = 0,
+    height_down = 0,
+    corner_radius = 2,
+    top_shape_type = "spherical",
+    dish_radius = 45,
+    dish_depth = 0,
+    pitch_deg = 0,
+    roll_deg = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0
+) {
+    union() {
+        keycap_jis_enter_typewriter_rim_side_shell(
+            width = width,
+            depth = depth,
+            top_center_height = top_center_height,
+            notch_width = notch_width,
+            notch_depth = notch_depth,
+            band_width = band_width,
+            corner_radius = corner_radius,
+            top_shape_type = top_shape_type,
+            dish_radius = dish_radius,
+            dish_depth = dish_depth,
+            pitch_deg = pitch_deg,
+            roll_deg = roll_deg,
+            quality = quality,
+            top_offset_x = top_offset_x,
+            top_offset_y = top_offset_y
+        );
+
+        keycap_jis_enter_typewriter_rim_top_extension(
+            width = width,
+            depth = depth,
+            top_center_height = top_center_height,
+            notch_width = notch_width,
+            notch_depth = notch_depth,
+            band_width = band_width,
+            height_up = height_up,
+            corner_radius = corner_radius,
+            top_shape_type = top_shape_type,
+            dish_radius = dish_radius,
+            dish_depth = dish_depth,
+            pitch_deg = pitch_deg,
+            roll_deg = roll_deg,
+            quality = quality,
+            top_offset_x = top_offset_x,
+            top_offset_y = top_offset_y
+        );
+
+        keycap_jis_enter_typewriter_rim_bottom_extension(
+            width = width,
+            depth = depth,
+            notch_width = notch_width,
+            notch_depth = notch_depth,
+            band_width = band_width,
+            height_down = height_down,
+            corner_radius = corner_radius,
+            quality = quality
+        );
+    }
+}
+
+module keycap_jis_enter_typewriter_shell(
+    width,
+    depth,
+    top_center_height,
+    notch_width,
+    notch_depth,
+    corner_radius = 2,
+    top_shape_type = "spherical",
+    dish_radius = 45,
+    dish_depth = 0,
+    pitch_deg = 0,
+    roll_deg = 0,
+    quality = "export",
+    top_offset_x = 0,
+    top_offset_y = 0
+) {
+    keycap_jis_enter_typewriter_cap(
+        width = width,
+        depth = depth,
+        top_center_height = top_center_height,
+        notch_width = notch_width,
+        notch_depth = notch_depth,
+        corner_radius = corner_radius,
+        top_shape_type = top_shape_type,
+        dish_radius = dish_radius,
+        dish_depth = dish_depth,
+        pitch_deg = pitch_deg,
+        roll_deg = roll_deg,
+        quality = quality,
+        top_offset_x = top_offset_x,
+        top_offset_y = top_offset_y
+    );
+}
