@@ -3437,6 +3437,13 @@ function renderShell() {
     const activeId = state.project.activeKeycapId || state.project.keycaps[0]?.id;
     if (activeId) {
       openKeycapExportOverlay(activeId);
+      if (isDefaultOrInvalidName(state.keycapParams.name)) {
+        const input = app.querySelector("#design-name-input");
+        if (input instanceof HTMLInputElement) {
+          input.focus();
+          input.select();
+        }
+      }
     }
   });
   app.querySelector("[data-keycap-export-overlay-root]")?.addEventListener("click", handleKeycapExportOverlayClick);
@@ -4058,20 +4065,18 @@ function getKeycapDesignOverlayEntry() {
   return state.project.keycaps.find((entry) => entry.id === state.keycapDesignOverlayKeycapId) ?? null;
 }
 
+function isDefaultOrInvalidName(name) {
+  const trimmed = String(name ?? "").trim();
+  return !trimmed || trimmed === "이름을 적으세요" || trimmed === "keycap-preview" || trimmed === DEFAULT_EXPORT_BASE_NAME;
+}
+
 function syncKeycapExportOverlayScrollLock(isLocked) {
   document.documentElement.classList.toggle("is-keycap-export-overlay-open", isLocked);
   document.body.classList.toggle("is-keycap-export-overlay-open", isLocked);
 }
 
-function isKeycapNameDefault(name) {
-  const trimmed = String(name ?? "").trim();
-  return !trimmed || trimmed === DEFAULT_EXPORT_BASE_NAME || trimmed === "keycap-preview";
-}
-
 function renderKeycapExportOverlayOption({ format, chip, title, body, action, disabled = false }) {
-  const isBusy = state.exportsStatus === "running";
-  const isDisabled = isBusy || disabled;
-
+  const isDisabled = disabled || state.exportsStatus === "running";
   return `
     <section class="export-option-action keycap-export-option" aria-labelledby="keycap-export-${format}-title">
       <div class="export-action-card__header">
@@ -4089,7 +4094,7 @@ function renderKeycapExportOverlayOption({ format, chip, title, body, action, di
         ${isDisabled ? "disabled" : ""}
       >
         ${EXPORT_ICON_MARKUP.download}
-        <span>${isBusy ? t("actions.saving") : escapeHtml(action)}</span>
+        <span>${state.exportsStatus === "running" ? t("actions.saving") : escapeHtml(action)}</span>
       </button>
     </section>
   `;
@@ -4116,9 +4121,9 @@ function renderKeycapExportOverlay() {
     return;
   }
 
-  const isDefaultName = isKeycapNameDefault(entry.name);
-  const statusMessage = isDefaultName
-    ? `⚠️ 이름을 초기값("${DEFAULT_EXPORT_BASE_NAME}")에서 변경해야 내보낼 수 있습니다.`
+  const isInvalidName = isDefaultOrInvalidName(entry.name) || isDefaultOrInvalidName(state.keycapParams.name);
+  const statusMessage = isInvalidName
+    ? "⚠️ 이름을 입력하세요 (기본 이름을 수정해야 내보낼 수 있습니다)"
     : state.exportsSummary;
 
   overlayRoot.innerHTML = `
@@ -4149,14 +4154,12 @@ function renderKeycapExportOverlay() {
             format: "stl",
             chip: t("exportPanel.stlChip"),
             title: t("exportPanel.stlTitle"),
-            body: isDefaultName
-              ? `이름을 초기값("${DEFAULT_EXPORT_BASE_NAME}")에서 다른 이름으로 수정해야 STL 저장이 가능합니다.`
-              : t("exportPanel.stlBody"),
+            body: t("exportPanel.stlBody"),
             action: t("exportPanel.saveStl"),
-            disabled: isDefaultName,
+            disabled: isInvalidName,
           })}
         </div>
-        <p class="keycap-export-dialog__status" aria-live="polite" style="${isDefaultName ? "color: #c94a4a; font-weight: 700;" : ""}">${escapeHtml(statusMessage)}</p>
+        <p class="keycap-export-dialog__status ${isInvalidName ? "is-warning" : ""}" aria-live="polite">${escapeHtml(statusMessage)}</p>
       </section>
     </div>
   `;
@@ -4356,12 +4359,13 @@ function renderNameFieldCard() {
   const groupViewTransitionName = createViewTransitionName("field-group", DESIGN_NAME_FIELD.key);
   const fieldViewTransitionName = createViewTransitionName("field", DESIGN_NAME_FIELD.key);
   const value = state.keycapParams[DESIGN_NAME_FIELD.key];
+  const isInvalidName = isDefaultOrInvalidName(value);
   const fieldLabel = resolveDynamicCopy(DESIGN_NAME_FIELD.label);
   const fieldPlaceholder = resolveDynamicCopy(DESIGN_NAME_FIELD.placeholder);
   const titleId = "design-name-card-title";
 
   return `
-    <section class="field-group-card" aria-labelledby="${titleId}" style="view-transition-name: ${groupViewTransitionName};">
+    <section class="field-group-card ${isInvalidName ? "field-group-card--invalid-name" : ""}" aria-labelledby="${titleId}" style="view-transition-name: ${groupViewTransitionName};">
       ${renderParameterCardHeader({
         groupId: "name",
         title: t("nameGroup.title"),
@@ -4369,7 +4373,7 @@ function renderNameFieldCard() {
         caption: getParameterGroupCaption("name"),
       })}
       <div class="field-group-body">
-        <span class="field-control name-field-control" style="view-transition-name: ${fieldViewTransitionName};">
+        <span class="field-control name-field-control ${isInvalidName ? "is-invalid" : ""}" style="view-transition-name: ${fieldViewTransitionName};">
           <input
             id="design-name-input"
             type="text"
@@ -4382,6 +4386,7 @@ function renderNameFieldCard() {
             autocomplete="off"
           />
         </span>
+        ${isInvalidName ? `<p class="name-field-warning">⚠️ 이름을 입력하세요</p>` : ""}
       </div>
     </section>
   `;
@@ -10525,15 +10530,6 @@ async function executeExport(format, options = {}) {
     editorDataPayload = null,
     closeOverlayOnSuccess = false,
   } = options;
-  if (isKeycapNameDefault(params.name)) {
-    setExportStatus(
-      "error",
-      `이름을 초기값("${DEFAULT_EXPORT_BASE_NAME}")에서 변경해야 내보낼 수 있습니다.`,
-    );
-    render();
-    return;
-  }
-
   state.exportsStatus = "running";
   state.exportsSummary = t("importExport.preparing");
   render();
