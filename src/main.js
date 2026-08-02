@@ -3419,6 +3419,16 @@ function renderShell() {
         <section class="right-column">
           <div class="preview-area">
             <div class="preview-stage">
+              <button
+                class="preview-export-button"
+                type="button"
+                data-preview-export
+                data-i18n-aria-label="project.exportAction"
+                data-i18n-title="project.exportAction"
+              >
+                ${EXPORT_ICON_MARKUP.download}
+                <span data-i18n="project.exportAction">${escapeHtml(t("project.exportAction"))}</span>
+              </button>
               <div class="preview-stage__canvas" data-preview-stage></div>
             </div>
           </div>
@@ -3427,6 +3437,12 @@ function renderShell() {
     </main>
   `;
 
+  app.querySelector("[data-preview-export]")?.addEventListener("click", () => {
+    const activeId = state.project.activeKeycapId || state.project.keycaps[0]?.id;
+    if (activeId) {
+      openKeycapExportOverlay(activeId);
+    }
+  });
   app.querySelector("[data-keycap-export-overlay-root]")?.addEventListener("click", handleKeycapExportOverlayClick);
   app.querySelector("[data-segment-control]")?.addEventListener("click", handleSegmentControlClick);
   app.querySelector("[data-theme-control]")?.addEventListener("click", handleThemeControlClick);
@@ -3484,6 +3500,10 @@ function renderPersistentShellCopy() {
 
   app.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
     element.setAttribute("aria-label", t(element.dataset.i18nAriaLabel));
+  });
+
+  app.querySelectorAll("[data-i18n-title]").forEach((element) => {
+    element.setAttribute("title", t(element.dataset.i18nTitle));
   });
 }
 

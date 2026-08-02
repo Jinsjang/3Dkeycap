@@ -3459,6 +3459,59 @@ pre {
   background: transparent;
 }
 
+.preview-export-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: var(--action-fill);
+  color: var(--action-text);
+  border: 1px solid color-mix(in srgb, var(--action-fill) 80%, white 20%);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow:
+    0 8px 20px rgba(45, 36, 28, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition:
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.preview-export-button:hover {
+  background: var(--action-fill-hover);
+  box-shadow:
+    0 12px 26px rgba(45, 36, 28, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.preview-export-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.preview-export-button:active {
+  transform: translateY(1px);
+}
+
+.preview-export-button svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .preview-stage__canvas {
   position: absolute;
   inset: 0;
