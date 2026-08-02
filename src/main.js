@@ -4133,11 +4133,11 @@ function renderKeycapExportOverlay() {
         </div>
         <div class="keycap-export-dialog__body">
           ${renderKeycapExportOverlayOption({
-            format: "editor-data",
-            chip: t("exportPanel.jsonChip"),
-            title: t("exportPanel.jsonTitle"),
-            body: t("exportPanel.jsonBody"),
-            action: t("exportPanel.saveJson"),
+            format: "stl",
+            chip: t("exportPanel.stlChip"),
+            title: t("exportPanel.stlTitle"),
+            body: t("exportPanel.stlBody"),
+            action: t("exportPanel.saveStl"),
           })}
           ${renderKeycapExportOverlayOption({
             format: "3mf",
@@ -4154,11 +4154,11 @@ function renderKeycapExportOverlay() {
             action: t("exportPanel.saveStep"),
           })}
           ${renderKeycapExportOverlayOption({
-            format: "stl",
-            chip: t("exportPanel.stlChip"),
-            title: t("exportPanel.stlTitle"),
-            body: t("exportPanel.stlBody"),
-            action: t("exportPanel.saveStl"),
+            format: "editor-data",
+            chip: t("exportPanel.jsonChip"),
+            title: t("exportPanel.jsonTitle"),
+            body: t("exportPanel.jsonBody"),
+            action: t("exportPanel.saveJson"),
           })}
         </div>
         <p class="keycap-export-dialog__status" aria-live="polite">${escapeHtml(state.exportsSummary)}</p>
