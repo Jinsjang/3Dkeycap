@@ -67,7 +67,8 @@ export function getShapeProfileGeometryDefaults(profileKey = DEFAULT_SHAPE_PROFI
 
 export function getShapeProfileFieldGroups(profileKey = DEFAULT_SHAPE_PROFILE_KEY) {
   const profile = resolveShapeProfileConfig(profileKey);
-  return cloneSerializable(profile?.fieldGroups ?? []);
+  const groups = cloneSerializable(profile?.fieldGroups ?? []);
+  return groups.filter((group) => group.id !== "top" && group.id !== "topHat");
 }
 
 export function getShapeProfileFieldOverride(profileKey = DEFAULT_SHAPE_PROFILE_KEY, fieldKey) {
