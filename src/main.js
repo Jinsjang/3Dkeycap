@@ -3087,7 +3087,8 @@ function formatUnitInputValue(value = state.keycapParams.keyWidth) {
 }
 
 function resolvePublicAssetUrl(relativePath) {
-  const baseUrl = new URL(import.meta.env.BASE_URL, window.location.origin);
+  const baseUri = typeof document !== "undefined" && document.baseURI ? document.baseURI : window.location.href;
+  const baseUrl = new URL(import.meta.env.BASE_URL, baseUri);
   return new URL(relativePath, baseUrl).toString();
 }
 
