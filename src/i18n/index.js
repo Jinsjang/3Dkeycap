@@ -3,7 +3,7 @@ import en from "./locales/en.js";
 import zh from "./locales/zh.js";
 import ko from "./locales/ko.js";
 
-export const DEFAULT_LOCALE = "ja";
+export const DEFAULT_LOCALE = "ko";
 export const LOCALE_STORAGE_KEY = "keycap-maker:locale";
 export const LOCALE_OPTIONS = Object.freeze([
   { value: "ja", labelKey: "language.options.ja" },
@@ -25,9 +25,13 @@ export function normalizeLocale(value) {
 
 export function getInitialLocale() {
   try {
-    return normalizeLocale(window.localStorage?.getItem(LOCALE_STORAGE_KEY));
+    const saved = window.localStorage?.getItem(LOCALE_STORAGE_KEY);
+    if (saved && Object.hasOwn(MESSAGES, saved)) {
+      return saved;
+    }
+    return "ko";
   } catch {
-    return DEFAULT_LOCALE;
+    return "ko";
   }
 }
 
