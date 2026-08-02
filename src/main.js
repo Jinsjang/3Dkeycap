@@ -2867,6 +2867,9 @@ function createFieldGroupCollapseState() {
     ...Object.fromEntries(Array.from(new Set(groupIds)).map((groupId) => [groupId, true])),
     ...Object.fromEntries(LEGEND_CARD_DEFINITIONS.map((card) => [card.id, true])),
     ...Object.fromEntries(STEM_CARD_DEFINITIONS.map((card) => [card.id, true])),
+    // 각인 메뉴와 중앙 각인은 초기에 펼쳐진 상태로 표시
+    legend: false,
+    "legend-card-center": false,
   };
 }
 
