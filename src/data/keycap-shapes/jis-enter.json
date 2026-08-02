@@ -192,7 +192,7 @@
     "homingBarChamfer": 0.3,
     "homingBarOffsetY": -3.5,
     "homingBarColor": "#ff7f00",
-    "stemType": "choc_v2",
+    "stemType": "mx",
     "jStemLp01PreviewColor": "clear",
     "stemOuterDelta": 0,
     "stemCrossMargin": 0,

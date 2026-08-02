@@ -175,7 +175,7 @@
     "homingBarChamfer": 0.3,
     "homingBarOffsetY": -3.5,
     "homingBarColor": "#ff7f00",
-    "stemType": "choc_v2",
+    "stemType": "mx",
     "typewriterMountHeight": 11.68,
     "jStemLp01PreviewColor": "clear",
     "stemOuterDelta": 0,

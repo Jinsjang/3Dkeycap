@@ -697,7 +697,7 @@ function isSupportedStemType(stemType) {
 
 function resolveDefaultStemType(profileKey = DEFAULT_SHAPE_PROFILE_KEY) {
   const defaults = createDefaultKeycapParams(profileKey);
-  return isSupportedStemType(defaults.stemType) ? defaults.stemType : "choc_v2";
+  return isSupportedStemType(defaults.stemType) ? defaults.stemType : "mx";
 }
 
 export function resolveStemType(params = {}) {
