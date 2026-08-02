@@ -3087,9 +3087,18 @@ function formatUnitInputValue(value = state.keycapParams.keyWidth) {
 }
 
 function resolvePublicAssetUrl(relativePath) {
-  const baseUri = typeof document !== "undefined" && document.baseURI ? document.baseURI : window.location.href;
-  const baseUrl = new URL(import.meta.env.BASE_URL, baseUri);
-  return new URL(relativePath, baseUrl).toString();
+  let baseUri = typeof document !== "undefined" && document.baseURI ? document.baseURI : window.location.href;
+  if (!baseUri.endsWith("/")) {
+    baseUri += "/";
+  }
+  const rawBase = import.meta.env.BASE_URL || "/";
+  const baseUrl = new URL(rawBase.startsWith("/") ? rawBase : `/${rawBase}`, baseUri);
+  let baseUrlStr = baseUrl.toString();
+  if (!baseUrlStr.endsWith("/")) {
+    baseUrlStr += "/";
+  }
+  const cleanPath = String(relativePath ?? "").replace(/^\/+/u, "");
+  return new URL(cleanPath, baseUrlStr).toString();
 }
 
 function getJStemLp01ReferenceMeshPromise() {
