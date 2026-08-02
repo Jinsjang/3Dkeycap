@@ -3374,10 +3374,6 @@ function renderShell() {
         </div>
       </div>
       <div data-keycap-export-overlay-root></div>
-      <div class="app-top-controls">
-        <div class="theme-control" data-theme-control></div>
-        <div class="language-control" data-language-control></div>
-      </div>
       <section class="editor-screen">
         <aside class="left-column">
           <div class="mobile-inspector-shell">
@@ -3445,8 +3441,6 @@ function renderShell() {
   });
   app.querySelector("[data-keycap-export-overlay-root]")?.addEventListener("click", handleKeycapExportOverlayClick);
   app.querySelector("[data-segment-control]")?.addEventListener("click", handleSegmentControlClick);
-  app.querySelector("[data-theme-control]")?.addEventListener("click", handleThemeControlClick);
-  app.querySelector("[data-language-control]")?.addEventListener("click", handleLanguageControlClick);
   app.querySelector("[data-mobile-inspector-toggle]")?.addEventListener("click", handleMobileInspectorToggleClick);
   app.querySelector(".inspector-card")?.addEventListener("click", handleInspectorCardClick);
   app.querySelector(".inspector-card")?.addEventListener("input", handleInspectorCardInput);
@@ -3460,8 +3454,6 @@ function renderShell() {
   app.querySelector(".inspector-card")?.addEventListener("dragend", handleInspectorCardDragEnd);
   attachEditorDataDropListeners();
   renderPersistentShellCopy();
-  renderThemeControl();
-  renderLanguageControl();
   syncImportDropOverlay();
   renderPreviewViewer();
 }
@@ -3708,8 +3700,6 @@ function render(options = {}) {
     applyTheme(state.theme);
     renderLayout();
     renderPersistentShellCopy();
-    renderThemeControl();
-    renderLanguageControl();
     renderSegmentControl();
     renderInspectorPanel();
     renderKeycapExportOverlay();
