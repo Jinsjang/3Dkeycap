@@ -35,7 +35,7 @@ export const EDITOR_DATA_COMPAT_KIND = "keycap-maker/editor-params-patch";
 export const EDITOR_DATA_COMPAT_SCHEMA_VERSION = 1;
 export const J_STEM_LP01_RECOMMENDED_RECESS_CLEARANCE = 0.1;
 
-const STEM_TYPE_VALUES = new Set(["none", "mx", "choc_v1", "choc_v2", "alps", "j_stem_lp01"]);
+const STEM_TYPE_VALUES = new Set(["none", "mx", "mx_0", "choc_v1", "choc_v2", "alps", "j_stem_lp01"]);
 const TOP_SLOPE_INPUT_MODE_VALUES = new Set(["angle", "edge-height"]);
 const TOP_SURFACE_SHAPE_VALUES = new Set(["flat", "cylindrical", "spherical"]);
 const TYPEWRITER_TOP_SURFACE_SHAPE_VALUES = new Set(["flat", "spherical"]);
@@ -697,7 +697,7 @@ function isSupportedStemType(stemType) {
 
 function resolveDefaultStemType(profileKey = DEFAULT_SHAPE_PROFILE_KEY) {
   const defaults = createDefaultKeycapParams(profileKey);
-  return isSupportedStemType(defaults.stemType) ? defaults.stemType : "mx";
+  return isSupportedStemType(defaults.stemType) ? defaults.stemType : "mx_0";
 }
 
 export function resolveStemType(params = {}) {

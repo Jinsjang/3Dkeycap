@@ -724,6 +724,7 @@ const ko = Object.freeze({
   options: {
     stemType: {
       none: "없음",
+      mx_0: "MX-0",
       mx: "MX 호환",
       choc_v1: "Choc v1",
       choc_v2: "Choc v2",
@@ -757,6 +758,7 @@ const ko = Object.freeze({
   },
   stemDescriptions: {
     none: "장착부를 만들지 않습니다. 외형이나 각인만 확인하고 싶을 때 사용합니다.",
+    mx_0: "외경 5.5mm, 높이 4.5mm, 직경 4.4mm 원형 구멍(십자 구멍 없음) 형상입니다.",
     mx: "Cherry MX 호환 십자 형상입니다. Cherry / Gateron / Kailh BOX 등 일반적인 기계식 키보드 스위치에 맞습니다.",
     choc_v1: "Kailh Choc v1용 두 갈래 형상입니다. 슬림 키보드용 Choc v1 스위치에 맞습니다.",
     alps: "Alps / Matias 계열 삽입 형상입니다. 대응하는 Alps 계열 스위치에 맞습니다.",

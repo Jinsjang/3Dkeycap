@@ -12,6 +12,7 @@ import homingBarScad from "../../scad/modules/homing_bar.scad?raw";
 import legendBlockScad from "../../scad/modules/legend_block.scad?raw";
 import sidewallLegendScad from "../../scad/modules/sidewall_legend.scad?raw";
 import stemMxScad from "../../scad/modules/stem_mx.scad?raw";
+import stemMx0Scad from "../../scad/modules/stem_mx_0.scad?raw";
 import stemChocV1Scad from "../../scad/modules/stem_choc_v1.scad?raw";
 import stemChocV2Scad from "../../scad/modules/stem_choc_v2.scad?raw";
 import stemAlpsScad from "../../scad/modules/stem_alps.scad?raw";
@@ -178,6 +179,7 @@ const SCAD_FILES = [
   { path: "/scad/modules/legend_block.scad", content: legendBlockScad },
   { path: "/scad/modules/sidewall_legend.scad", content: sidewallLegendScad },
   { path: "/scad/modules/stem_mx.scad", content: stemMxScad },
+  { path: "/scad/modules/stem_mx_0.scad", content: stemMx0Scad },
   { path: "/scad/modules/stem_choc_v1.scad", content: stemChocV1Scad },
   { path: "/scad/modules/stem_choc_v2.scad", content: stemChocV2Scad },
   { path: "/scad/modules/stem_alps.scad", content: stemAlpsScad },
@@ -1101,7 +1103,10 @@ function buildKeycapJobScad(definitions) {
 }
 
 function resolvePublicAssetUrl(relativePath) {
-  let baseUri = typeof document !== "undefined" && document.baseURI ? document.baseURI : window.location.href;
+  let baseUri =
+    (typeof document !== "undefined" && document?.baseURI) ||
+    (typeof window !== "undefined" && window.location?.href) ||
+    "http://localhost/";
   if (!baseUri.endsWith("/")) {
     baseUri += "/";
   }

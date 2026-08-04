@@ -523,6 +523,52 @@ test("J-STEM-LP01 の受け座SCADを bundle し、stemType を wrapper へ渡�
   }
 });
 
+test("MX-0 の SCAD モジュールを bundle し、stemType を wrapper へ渡す", async () => {
+  const restoreBrowserMocks = installBrowserMocks({
+    width: 120,
+    actualBoundingBoxLeft: 60,
+    actualBoundingBoxRight: 60,
+    actualBoundingBoxAscent: 50,
+    actualBoundingBoxDescent: 30,
+  });
+  const server = await createServer({
+    root: PROJECT_ROOT,
+    server: { middlewareMode: true },
+    appType: "custom",
+  });
+
+  try {
+    const [bundle, registry] = await Promise.all([
+      server.ssrLoadModule("/src/lib/keycap-scad-bundle.js"),
+      server.ssrLoadModule("/src/data/keycap-shape-registry.js"),
+    ]);
+    const files = await bundle.createKeycapFiles({
+      exportTarget: "body",
+      params: {
+        ...registry.createDefaultKeycapParams("custom-shell"),
+        stemType: "mx_0",
+      },
+    });
+    const jobScad = files.find((file) => file.path === bundle.KEYCAP_JOB_PATH)?.content;
+    const baseScad = files.find((file) => file.path === bundle.KEYCAP_ENTRY_PATH)?.content;
+    const mx0Scad = files.find((file) => file.path === "/scad/modules/stem_mx_0.scad")?.content;
+    const nominalsScad = files.find((file) => file.path === "/scad/presets/stem-nominals.scad")?.content;
+
+    assert.ok(jobScad, "keycap job SCAD should be generated");
+    assert.ok(baseScad, "keycap base SCAD should be included");
+    assert.ok(mx0Scad, "MX-0 stem module should be bundled");
+    assert.ok(nominalsScad, "stem nominals should be bundled");
+    assert.equal(readRawScadDefinition(jobScad, "user_stem_type"), "\"mx_0\"");
+    assert.match(baseScad, /stem_mx_0_hole_diameter = positive_dimension/);
+    assert.match(baseScad, /stem_mx_0\(/);
+    assert.match(mx0Scad, /module stem_mx_0/);
+    assert.match(nominalsScad, /stem_mx_0_nominal_hole_diameter = 4\.4;/);
+  } finally {
+    await server.close();
+    restoreBrowserMocks();
+  }
+});
+
 test("dishDepth の負値は cylindrical / spherical の盛り上がりとして SCAD へ渡す", async () => {
   const restoreBrowserMocks = installBrowserMocks({
     width: 120,

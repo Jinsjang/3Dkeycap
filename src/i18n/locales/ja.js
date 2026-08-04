@@ -724,6 +724,7 @@ const ja = Object.freeze({
   options: {
     stemType: {
       none: "なし",
+      mx_0: "MX-0",
       mx: "MX 互換",
       choc_v1: "Choc v1",
       choc_v2: "Choc v2",
@@ -757,6 +758,7 @@ const ja = Object.freeze({
   },
   stemDescriptions: {
     none: "取り付け部分を作りません。外形や印字だけを確認したいとき向けです。",
+    mx_0: "外径 5.5mm、高さ 4.5mm、直径 4.4mm 丸穴（十字穴なし）の形状です。",
     mx: "Cherry MX 互換の十字形状です。Cherry / Gateron / Kailh BOX など、一般的なメカニカルキーボード用の軸に合います。",
     choc_v1: "Kailh Choc v1 用の 2 本爪形状です。薄型キーボード向けの Choc v1 軸に合います。",
     alps: "Alps / Matias 系の差し込み形状です。対応する Alps 系の軸に合います。",

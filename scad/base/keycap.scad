@@ -5,6 +5,7 @@ use <../modules/keycap_typewriter.scad>
 use <../modules/legend_block.scad>
 use <../modules/sidewall_legend.scad>
 use <../modules/stem_mx.scad>
+use <../modules/stem_mx_0.scad>
 use <../modules/stem_choc_v1.scad>
 use <../modules/stem_choc_v2.scad>
 use <../modules/stem_alps.scad>
@@ -32,6 +33,7 @@ function supported_top_shape_type(type) =
 function supported_stem_type(type) =
     type == "none"
     || type == "mx"
+    || type == "mx_0"
     || type == "choc_v1"
     || type == "choc_v2"
     || type == "alps"
@@ -41,13 +43,13 @@ function receiver_recess_stem_type(type) =
 function cross_compatible_stem_type(type) =
     type == "mx" || type == "choc_v2";
 function stem_nominal_outer_diameter_for_type(type) =
-    type == "mx"
+    type == "mx" || type == "mx_0"
         ? stem_mx_nominal_outer_diameter
         : type == "j_stem_lp01"
             ? max(stem_j_stem_lp01_nominal_plate_width, stem_j_stem_lp01_nominal_plate_depth)
             : stem_choc_v2_nominal_outer_diameter;
 function stem_nominal_inset_for_type(type) =
-    type == "mx"
+    type == "mx" || type == "mx_0"
         ? stem_mx_nominal_inset
         : type == "choc_v1"
             ? stem_choc_v1_nominal_inset
@@ -57,7 +59,7 @@ function stem_nominal_inset_for_type(type) =
                     ? 0
                     : stem_choc_v2_nominal_inset;
 function stem_nominal_height_for_type(type) =
-    type == "mx"
+    type == "mx" || type == "mx_0"
         ? stem_mx_nominal_height
         : type == "choc_v1"
             ? stem_choc_v1_nominal_height
@@ -100,7 +102,7 @@ typewriter_rim_body_clearance = 0.03;
 function typewriter_stem_height_from_mount_height(mount_height, top_height) =
     max(mount_height - top_height + typewriter_stem_mount_overlap, 0.6);
 function stem_footprint_radius(type, outer_diameter, prong_width, prong_depth, prong_spacing, alps_length, alps_width) =
-    type == "mx" || type == "choc_v2"
+    type == "mx" || type == "choc_v2" || type == "mx_0"
         ? positive_dimension(outer_diameter) / 2
         : type == "choc_v1"
             ? sqrt(pow(prong_spacing / 2 + prong_width / 2, 2) + pow(prong_depth / 2, 2))
@@ -562,6 +564,7 @@ stem_cross_chamfer = is_undef(user_stem_cross_chamfer)
     ? stem_nominal_cross_chamfer_for_type(stem_type)
     : user_stem_cross_chamfer;
 stem_post_fit_delta = stem_cross_margin * 2;
+stem_mx_0_hole_diameter = positive_dimension(stem_mx_0_nominal_hole_diameter + stem_post_fit_delta);
 stem_choc_v1_prong_width = positive_dimension(stem_choc_v1_nominal_prong_width - stem_post_fit_delta);
 stem_choc_v1_prong_depth = positive_dimension(stem_choc_v1_nominal_prong_depth - stem_post_fit_delta);
 stem_choc_v1_prong_spacing = stem_choc_v1_nominal_prong_spacing;
@@ -1465,6 +1468,14 @@ module keycap_stem_positive(base_clearance = stem_inset, quality = "export") {
             cross_width_vertical = stem_cross_width_vertical,
             cross_length_vertical = stem_cross_length_vertical,
             cross_chamfer = stem_cross_chamfer,
+            quality = quality
+        );
+    } else if (stem_type == "mx_0") {
+        stem_mx_0(
+            outer_diameter = stem_outer_diameter,
+            stem_height = stem_height,
+            hole_diameter = stem_mx_0_hole_diameter,
+            base_clearance = base_clearance,
             quality = quality
         );
     } else if (stem_type == "choc_v1") {

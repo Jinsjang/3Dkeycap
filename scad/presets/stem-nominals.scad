@@ -18,6 +18,11 @@ stem_mx_nominal_cross_width_vertical = stem_nominal_cross_width_vertical;
 stem_mx_nominal_cross_length_vertical = stem_nominal_cross_length_vertical;
 stem_mx_nominal_cross_chamfer = stem_nominal_cross_chamfer;
 
+stem_mx_0_nominal_outer_diameter = 5.5;
+stem_mx_0_nominal_height = 4.5;
+stem_mx_0_nominal_inset = 0;
+stem_mx_0_nominal_hole_diameter = 4.4;
+
 stem_choc_v2_nominal_outer_diameter = stem_nominal_outer_diameter;
 stem_choc_v2_nominal_height = stem_nominal_height;
 stem_choc_v2_nominal_inset = stem_nominal_inset;

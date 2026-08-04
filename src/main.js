@@ -1183,6 +1183,7 @@ function getLegendOutlineHint() {
 
 const STEM_TYPE_OPTIONS = Object.freeze([
   { value: "none", labelKey: "options.stemType.none" },
+  { value: "mx_0", labelKey: "options.stemType.mx_0" },
   { value: "mx", labelKey: "options.stemType.mx" },
   { value: "choc_v1", labelKey: "options.stemType.choc_v1" },
   { value: "choc_v2", labelKey: "options.stemType.choc_v2" },
@@ -1237,6 +1238,8 @@ function getStemGroupDescription(params) {
   switch (stemType) {
     case "none":
       return t("stemDescriptions.none");
+    case "mx_0":
+      return t("stemDescriptions.mx_0");
     case "mx":
       return t("stemDescriptions.mx");
     case "choc_v1":
@@ -1259,6 +1262,7 @@ function getStemOuterHint(params) {
 function getStemFitHint(params) {
   switch (resolveStemType(params)) {
     case "mx":
+    case "mx_0":
     case "choc_v2":
       return t("fields.stemCrossMargin.mxHint");
     case "choc_v1":
