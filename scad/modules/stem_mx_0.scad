@@ -3,7 +3,7 @@ use <stem_mx.scad>
 module stem_mx_0(
     outer_diameter = 5.5,
     stem_height = 4.5,
-    hole_diameter = 3.9,
+    hole_diameter = 4.0,
     base_clearance = 0,
     quality = "export"
 ) {
