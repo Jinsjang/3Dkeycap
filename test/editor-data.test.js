@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import {
   createDefaultKeycapParams,
   getShapeProfileFieldGroups,
+  resolveShapeProfileConfig,
 } from "../src/data/keycap-shape-registry.js";
 import {
   createEditorDataPayload,
@@ -741,8 +742,9 @@ test("シェル系の上面すぼまり初期値は一般的なキーキャッ�
 
 test("上面中央の高さは形カードで横幅と奥行きの間に表示する", () => {
   for (const profileKey of ["custom-shell", "jis-enter", "typewriter", "typewriter-jis-enter"]) {
-    const shapeGroup = getShapeProfileFieldGroups(profileKey).find((group) => group.id === "shape");
-    const topGroup = getShapeProfileFieldGroups(profileKey).find((group) => group.id === "top");
+    const profile = resolveShapeProfileConfig(profileKey);
+    const shapeGroup = profile.fieldGroups.find((group) => group.id === "shape");
+    const topGroup = profile.fieldGroups.find((group) => group.id === "top");
 
     assert.deepEqual(
       shapeGroup.fieldKeys.slice(1, 4),
@@ -753,10 +755,12 @@ test("上面中央の高さは形カードで横幅と奥行きの間に表示�
 });
 
 test("トップハットはキートップから独立したカードで天面の直後に底面を表示する", () => {
-  const groups = getShapeProfileFieldGroups("custom-shell");
+  const profile = resolveShapeProfileConfig("custom-shell");
+  const groups = profile.fieldGroups;
   const topGroup = groups.find((group) => group.id === "top");
   const topHatGroup = groups.find((group) => group.id === "topHat");
-  const jisGroups = getShapeProfileFieldGroups("jis-enter");
+  const jisProfile = resolveShapeProfileConfig("jis-enter");
+  const jisGroups = jisProfile.fieldGroups;
   const jisTopGroup = jisGroups.find((group) => group.id === "top");
   const jisTopHatGroup = jisGroups.find((group) => group.id === "topHat");
 
