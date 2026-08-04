@@ -562,7 +562,7 @@ test("MX-0 の SCAD モジュールを bundle し、stemType を wrapper へ渡�
     assert.match(baseScad, /stem_mx_0_hole_diameter = positive_dimension/);
     assert.match(baseScad, /stem_mx_0\(/);
     assert.match(mx0Scad, /module stem_mx_0/);
-    assert.match(nominalsScad, /stem_mx_0_nominal_hole_diameter = 4\.4;/);
+    assert.match(nominalsScad, /stem_mx_0_nominal_hole_diameter = 3\.9;/);
   } finally {
     await server.close();
     restoreBrowserMocks();

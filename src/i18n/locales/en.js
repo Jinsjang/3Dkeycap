@@ -758,7 +758,7 @@ const en = Object.freeze({
   },
   stemDescriptions: {
     none: "No mount is generated. Use this when you only want to inspect the outer shape or legend.",
-    mx_0: "A mount with 5.5mm outer diameter, 4.5mm height, and a 4.4mm circular hole without cross slot.",
+    mx_0: "A mount with 5.5mm outer diameter, 4.5mm height, and a 3.9mm circular hole without cross slot.",
     mx: "A Cherry MX-compatible cross shape. Fits common mechanical keyboard switches such as Cherry, Gateron, and Kailh BOX.",
     choc_v1: "A two-prong mount for Kailh Choc v1. Fits low-profile keyboards using Choc v1 switches.",
     alps: "An insert shape for Alps / Matias switches. Fits compatible Alps-family switches.",
