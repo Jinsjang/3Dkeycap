@@ -15,7 +15,7 @@
 - `modules/keycap_shell.scad`: `top_center_height + pitch / roll` 基準の外形シェル、dish、内側 hollow
 - `modules/keycap_jis_enter.scad`: JIS / ISO 系の縦長 Enter footprint 用シェル、typewriter variant、内側 hollow
 - `modules/stem_mx.scad`: MX 互換 stem ボディ
-- `modules/stem_mx_0.scad`: MX-0 (外径 5.5mm, 4.4mm 丸穴) stem ボディ
+- `modules/stem_mx_0.scad`: MX-0 (外径 5.5mm, 4.1mm 丸穴) stem ボディ
 - `modules/stem_choc_v1.scad`: Kailh Choc v1 向け 2 本爪 stem
 - `modules/stem_choc_v2.scad`: Kailh Choc v2 向け MX 互換 stem
 - `modules/stem_alps.scad`: Alps / Matias 向け stem

@@ -758,7 +758,7 @@ const zh = Object.freeze({
   },
   stemDescriptions: {
     none: "不生成安装部。适合只检查外形或字符时使用。",
-    mx_0: "外径 5.5mm、高度 4.5mm、直径 4.0mm 圆孔（无十字孔）形状。",
+    mx_0: "外径 5.5mm、高度 4.5mm、直径 4.1mm 圆孔（无十字孔）形状。",
     mx: "Cherry MX 兼容的十字形状。适配 Cherry / Gateron / Kailh BOX 等常见机械键盘轴。",
     choc_v1: "Kailh Choc v1 用的双爪形状。适配使用 Choc v1 轴的薄型键盘。",
     alps: "Alps / Matias 系的插入形状。适配对应的 Alps 系轴体。",

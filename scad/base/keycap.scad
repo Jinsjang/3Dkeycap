@@ -342,9 +342,11 @@ legend_embed = min(max(requested_legend_embed, 0), max(top_thickness - legend_bo
 legend_visible_surface_overlap = 0.02;
 legend_surface_height = legend_height;
 legend_auto_embed = max(legend_embed, max(top_thickness - legend_bottom_skin, 0));
-legend_below_surface = legend_surface_height <= 0
-    ? max(legend_auto_embed, -legend_surface_height + legend_bottom_skin)
-    : legend_embed;
+legend_below_surface = legend_surface_height < 0
+    ? min(-legend_surface_height, max(top_thickness - 1.0, 0))
+    : legend_surface_height == 0
+        ? max(legend_auto_embed, legend_bottom_skin)
+        : legend_embed;
 legend_total_height = max(legend_below_surface + legend_surface_height, 0);
 top_legend_anchor_width = top_hat_enabled ? active_dish_plan_width : key_width;
 top_legend_anchor_depth = top_hat_enabled ? active_dish_plan_depth : key_depth;
@@ -365,9 +367,11 @@ function top_legend_anchor_y(anchor) =
 function top_legend_auto_embed(embed) =
     max(embed, max(top_thickness - legend_bottom_skin, 0));
 function top_legend_below_surface(surface_height, embed) =
-    surface_height <= 0
-        ? max(top_legend_auto_embed(embed), -surface_height + legend_bottom_skin)
-        : embed;
+    surface_height < 0
+        ? min(-surface_height, max(top_thickness - 1.0, 0))
+        : surface_height == 0
+            ? max(top_legend_auto_embed(embed), legend_bottom_skin)
+            : embed;
 function top_legend_total_height(surface_height, below_surface) =
     max(below_surface + surface_height, 0);
 function legend_has_content(label, content_type, icon_path) =
