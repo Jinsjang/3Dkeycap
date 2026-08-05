@@ -897,6 +897,8 @@ test("マイナス印字高さを SCAD wrapper と recessed legend 処理へ渡�
     assert.equal(readScadDefinition(jobScad, "user_side_legend_front_height"), -0.3);
     assert.match(baseScad, /legend_height = required_param\(user_legend_height, "user_legend_height"\);/);
     assert.match(baseScad, /legend_surface_height < 0\s*\?\s*min\(-legend_surface_height,\s*max\(top_thickness - 1\.0,\s*0\)\)/);
+    assert.match(baseScad, /legend_total_height = max\(legend_below_surface \+ max\(legend_surface_height, 0\), 0\);/);
+    assert.match(baseScad, /function top_legend_total_height\(surface_height, below_surface\) =\s*max\(below_surface \+ max\(surface_height, 0\), 0\);/);
     assert.match(baseScad, /effective_surface_height = top_overlap > 0 && surface_height < 0/);
     assert.match(baseScad, /surface_height < 0 \? -surface_height \+ side_legend_floor_thickness : 0/);
   } finally {

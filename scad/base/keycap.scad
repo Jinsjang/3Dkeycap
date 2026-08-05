@@ -347,7 +347,7 @@ legend_below_surface = legend_surface_height < 0
     : legend_surface_height == 0
         ? max(legend_auto_embed, legend_bottom_skin)
         : legend_embed;
-legend_total_height = max(legend_below_surface + legend_surface_height, 0);
+legend_total_height = max(legend_below_surface + max(legend_surface_height, 0), 0);
 top_legend_anchor_width = top_hat_enabled ? active_dish_plan_width : key_width;
 top_legend_anchor_depth = top_hat_enabled ? active_dish_plan_depth : key_depth;
 // Keep corner legend anchors on the outer reference; defaults can offset inward from here.
@@ -373,7 +373,7 @@ function top_legend_below_surface(surface_height, embed) =
             ? max(top_legend_auto_embed(embed), legend_bottom_skin)
             : embed;
 function top_legend_total_height(surface_height, below_surface) =
-    max(below_surface + surface_height, 0);
+    max(below_surface + max(surface_height, 0), 0);
 function legend_has_content(label, content_type, icon_path) =
     content_type == "icon" ? len(icon_path) > 0 : len(label) > 0;
 
